@@ -29,9 +29,9 @@ import os
 
 import config  # must be first — sets matplotlib backend before pyplot is imported
 
-from pipeline import run_pipeline_demo
+from demo import run_pipeline_demo
 from benchmark import run_global_benchmark, print_summary_table
-from figures import (
+from visualization import (
     plot_figure1_trajectories,
     plot_figure2_euler_vs_qe,
     plot_figure3_clusters,

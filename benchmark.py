@@ -5,7 +5,7 @@ import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 
 from config import RNG_SEED
-from analytics import bs_call, heston_semi_analytic_call
+from pricing import bs_call, heston_semi_analytic_call
 from simulation import (
     simulate_gbm_prng, simulate_gbm_qmc,
     simulate_heston_euler_prng, simulate_heston_euler_qmc,

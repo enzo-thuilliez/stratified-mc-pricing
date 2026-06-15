@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 
-from analytics import bs_call
+from pricing import bs_call
 from simulation import simulate_gbm_prng
 from payoffs import payoff_european_call
 from features import extract_features, normalise_features

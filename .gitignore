@@ -1,0 +1,32 @@
+# ── Thesis materials (excluded from repo) ─────────────────────────────────────
+Assets/
+LaTeX/
+References/
+Logos/
+Last_Year/
+*.pdf
+
+# ── Generated outputs ──────────────────────────────────────────────────────────
+outputs/
+*.png
+benchmark_results.csv
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.eggs/
+dist/
+build/
+*.egg-info/
+
+# ── Environments ───────────────────────────────────────────────────────────────
+.env
+venv/
+.venv/
+env/
+
+# ── IDE ────────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.DS_Store

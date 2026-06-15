@@ -120,7 +120,7 @@ def plot_figure2_euler_vs_qe(
     if M_values is None:
         M_values = [10, 20, 50, 100, 252, 500]
 
-    K = S0  # ATM
+    K = S0
 
     S_ref, _, _ = simulate_heston_qe_prng(
         S0, V0, r, kappa, theta_h, xi, rho_h, T, 1000, 100_000, seed=seed)
@@ -255,7 +255,7 @@ def plot_figure4_neyman_allocation(
     Figure 4: Neyman optimal budget vs uniform allocation (bar chart).
     Secondary axis shows within-cluster standard deviation sigma_k.
     """
-    from clustering import neyman_allocation  # local import avoids circular dep risk
+    from clustering import neyman_allocation
 
     if outpath is None:
         outpath = f"{OUT_DIR}/figure_4_neyman_allocation.png"
@@ -292,7 +292,6 @@ def plot_figure4_neyman_allocation(
     h1, l1 = ax1.get_legend_handles_labels()
     h2, l2 = ax2.get_legend_handles_labels()
     ax1.legend(h1 + h2, l1 + l2, fontsize=8, loc="upper right")
-
     ax1.set_title(
         f"Figure 4 — Neyman vs uniform simulation budget allocation ($K={K}$, "
         f"$N_{{total}}={N_total}$)",
@@ -304,13 +303,8 @@ def plot_figure4_neyman_allocation(
     print(f"Saved: {outpath}")
 
 
-def plot_figure5_rmse_european(
-    df: pd.DataFrame,
-    outpath: str = None,
-) -> None:
-    """
-    Figure 5: Log-log RMSE vs N for the European call under GBM (PRNG and QMC).
-    """
+def plot_figure5_rmse_european(df: pd.DataFrame, outpath: str = None) -> None:
+    """Figure 5: Log-log RMSE vs N for the European call under GBM (PRNG and QMC)."""
     if outpath is None:
         outpath = f"{OUT_DIR}/figure_5_rmse_european.png"
 
@@ -340,8 +334,7 @@ def plot_figure5_rmse_european(
                       color="0.0", linestyle=st["ls"], linewidth=st["lw"],
                       marker=st["marker"], markersize=st["ms"],
                       markerfacecolor=st["mfc"], markeredgecolor="0.0",
-                      markeredgewidth=0.8,
-                      label=_method_label(method))
+                      markeredgewidth=0.8, label=_method_label(method))
 
         plain_mc_row = ssub[ssub["method"] == "plain_mc"].sort_values("N")
         if not plain_mc_row.empty:
@@ -373,19 +366,12 @@ def plot_figure5_rmse_european(
     print(f"Saved: {outpath}")
 
 
-def plot_figure6_rmse_path_dependent(
-    df: pd.DataFrame,
-    outpath: str = None,
-) -> None:
-    """
-    Figure 6: RMSE vs N for path-dependent options under Heston-QE (PRNG).
-    Left: Asian call. Right: Barrier down-and-out call.
-    """
+def plot_figure6_rmse_path_dependent(df: pd.DataFrame, outpath: str = None) -> None:
+    """Figure 6: RMSE vs N for path-dependent options under Heston-QE (PRNG)."""
     if outpath is None:
         outpath = f"{OUT_DIR}/figure_6_rmse_path_dependent.png"
 
     sub = df[(df["model"] == "heston_qe") & (df["sampler"] == "prng")]
-
     fig, axes = plt.subplots(1, 2, figsize=(13, 5.2), sharey=False)
 
     for ax, payoff_name, panel_lbl in zip(
@@ -413,8 +399,7 @@ def plot_figure6_rmse_path_dependent(
                       color="0.0", linestyle=st["ls"], linewidth=st["lw"],
                       marker=st["marker"], markersize=st["ms"],
                       markerfacecolor=st["mfc"], markeredgecolor="0.0",
-                      markeredgewidth=0.8,
-                      label=_method_label(method))
+                      markeredgewidth=0.8, label=_method_label(method))
 
         plain_mc_row = ssub[ssub["method"] == "plain_mc"].sort_values("N")
         if not plain_mc_row.empty:
@@ -441,18 +426,13 @@ def plot_figure6_rmse_path_dependent(
 
 
 def plot_figure7_nn_loss(
-    train_hist: list, val_hist: list,
-    outpath: str = None,
+    train_hist: list, val_hist: list, outpath: str = None
 ) -> None:
-    """
-    Figure 7: NN variance-loss trajectory on train and validation sets.
-    Raw epoch losses + moving-average smoothing.
-    """
+    """Figure 7: NN variance-loss trajectory on train and validation sets."""
     if outpath is None:
         outpath = f"{OUT_DIR}/figure_7_nn_loss.png"
 
     epochs = np.arange(1, len(train_hist) + 1)
-
     fig, ax = plt.subplots(figsize=(8, 4.8))
     ax.plot(epochs, train_hist, color="0.0", lw=1.2, ls="-", alpha=0.45,
             label="Training loss (raw)")
@@ -479,9 +459,7 @@ def plot_figure7_nn_loss(
 
     ax.set_xlabel("Training epoch", labelpad=5)
     ax.set_ylabel(
-        r"$\mathcal{L}(\theta,c) = \mathbb{E}[(\phi - c\,g_\theta(x))^2]$",
-        labelpad=5
-    )
+        r"$\mathcal{L}(\theta,c) = \mathbb{E}[(\phi - c\,g_\theta(x))^2]$", labelpad=5)
     ax.set_title(
         r"Figure 7 — NN variance-loss trajectory: "
         r"$\mathcal{L}(\theta, c)$ on train and validation sets",
@@ -504,14 +482,8 @@ def plot_figure7_nn_loss(
     print(f"Saved: {outpath}")
 
 
-def plot_figure8_efficiency(
-    df: pd.DataFrame,
-    outpath: str = None,
-) -> None:
-    """
-    Figure 8: Efficiency frontier — CPU time vs variance reduction ratio.
-    Each point is one method averaged over all (payoff, model, sampler) configs at max N.
-    """
+def plot_figure8_efficiency(df: pd.DataFrame, outpath: str = None) -> None:
+    """Figure 8: Efficiency frontier — CPU time vs variance reduction ratio."""
     if outpath is None:
         outpath = f"{OUT_DIR}/figure_8_efficiency.png"
 
@@ -521,9 +493,7 @@ def plot_figure8_efficiency(
         print("  [Fig 8] No data. Skipping.")
         return
 
-    agg = (sub.groupby("method")[["var_ratio", "time_s"]]
-           .mean().reset_index())
-
+    agg = sub.groupby("method")[["var_ratio", "time_s"]].mean().reset_index()
     fig, ax = plt.subplots(figsize=(8, 5.5))
 
     for i, row in agg.iterrows():
@@ -542,13 +512,10 @@ def plot_figure8_efficiency(
     ax.axhline(1.0, color="0.65", ls="--", lw=0.8, label="Variance ratio = 1 (plain MC)")
     ax.set_xlabel("Mean CPU time per replication (seconds)", labelpad=5)
     ax.set_ylabel(
-        r"Variance reduction ratio $\mathrm{Var}(MC) / \mathrm{Var}(method)$",
-        labelpad=5
-    )
+        r"Variance reduction ratio $\mathrm{Var}(MC) / \mathrm{Var}(method)$", labelpad=5)
     ax.set_title(
         f"Figure 8 — Efficiency frontier: variance reduction vs computation time  "
-        f"($N={N_max}$)",
-        pad=10, fontsize=9
+        f"($N={N_max}$)", pad=10, fontsize=9
     )
     ax.legend(fontsize=8)
     ax.set_xscale("log")
