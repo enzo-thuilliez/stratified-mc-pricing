@@ -127,6 +127,7 @@ def run_global_benchmark(
     samplers: list = None,
     device: str = "cpu",
     verbose: bool = True,
+    nn_epochs: int = 250,
 ) -> pd.DataFrame:
     """
     Full factorial benchmark of all pricing methods across the experiment grid.
@@ -212,7 +213,7 @@ def run_global_benchmark(
                 nn_net, nn_c, nn_mu, _, _ = train_nn_control_variate(
                     X_nn_tr_sc, phi_tr,
                     X_val=X_nn_val_sc, phi_val=phi_val,
-                    n_epochs=250, batch_size=256, lr=1e-3,
+                    n_epochs=nn_epochs, batch_size=256, lr=1e-3,
                     verbose=False, record_loss=True, device=device
                 )
                 if verbose:

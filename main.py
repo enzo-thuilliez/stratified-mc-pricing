@@ -11,7 +11,7 @@ Date       : June 2026 — VERSION 2 (Publication-ready)
 Module structure
 ----------------
   config.py           — global constants and matplotlib style
-  analytics.py        — Black-Scholes and Heston semi-analytic pricers
+  pricing.py          — Black-Scholes and Heston semi-analytic pricers
   simulation.py       — GBM / Heston Euler / Heston QE path generators
   payoffs.py          — payoff functions (European, Asian, Barrier)
   features.py         — path feature extraction and normalisation
@@ -19,8 +19,8 @@ Module structure
   estimators.py       — plain MC, antithetic, stratified estimators
   control_variates.py — RF and NN control variates
   benchmark.py        — full factorial benchmark engine
-  pipeline.py         — single-config demonstration pipeline
-  figures.py          — all 8 publication figures
+  demo.py             — single-config demonstration pipeline
+  visualization.py    — all 8 publication figures
   main.py             — entry point (parameters + orchestration)
 ==============================================================================
 """
@@ -58,8 +58,8 @@ xi      = 0.30   # vol-of-vol
 rho_h   = -0.70  # spot-vol correlation
 
 # Benchmark parameters
-N_VALUES       = [500, 1_000, 2_000, 5_000, 10_000, 20_000]
-N_REPLICATIONS = 50     # increase to 100-200 for final publication (slow)
+N_VALUES       = [500, 1_000, 2_000]
+N_REPLICATIONS = 5      # increase to 50-200 for final publication (slow)
 K_CLUSTERS     = 8
 
 # =============================================================================
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     print("\n\n>>> PART A: Pipeline demonstration (GBM, European call)\n")
     demo = run_pipeline_demo(
         S0=S0, K=K_STRIKE, r=r, sigma=sigma, T=T, M=M,
-        N_pilot=20_000, N_pricing=20_000, K_clusters=K_CLUSTERS,
+        N_pilot=5_000, N_pricing=5_000, K_clusters=K_CLUSTERS,
         V0=V0, kappa=kappa, theta_h=theta_h, xi=xi, rho_h=rho_h,
     )
 
@@ -141,6 +141,7 @@ if __name__ == "__main__":
         samplers=["prng", "qmc"],
         device="cpu",
         verbose=True,
+        nn_epochs=30,       # increase to 250 for final publication
     )
 
     csv_path = f"{config.OUT_DIR}/benchmark_results.csv"
