@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
@@ -6,6 +7,8 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
 from config import OUT_DIR, GRAY_SHADES, CLUSTER_MARKERS, LINE_STYLES
+
+os.makedirs(OUT_DIR, exist_ok=True)
 from simulation import (
     simulate_gbm_prng,
     simulate_heston_qe_prng,

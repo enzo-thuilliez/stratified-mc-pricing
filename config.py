@@ -40,4 +40,4 @@ LINE_STYLES = [
     dict(ls=(0,(1,1)),     lw=1.2, marker="P", ms=5.0, mfc="white"),
 ]
 
-OUT_DIR = "."
+OUT_DIR = "figures"
