@@ -66,7 +66,7 @@ plot_figure5_rmse_european(df)
 ├── control_variates.py   # Random Forest and Neural Network control variates
 ├── benchmark.py          # Full factorial benchmark engine
 ├── demo.py               # Single-configuration pipeline demonstration
-├── visualization.py      # Publication-ready figures (8 total)
+├── visualization.py      # 8 figures
 └── requirements.txt
 ```
 
