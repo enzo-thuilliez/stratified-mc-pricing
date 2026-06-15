@@ -1,0 +1,1781 @@
+% ============================================================
+%  Stratified Monte Carlo Pricing and Variance Reduction
+%  via K-Means Clustering and Machine Learning Control Variates
+%
+%  Benjamin Sulpice & Enzo Thuilliez
+%  EDHEC Business School / Université Côte d'Azur
+%  Supervised by Professor Arnaud DUFAYS
+%  May 2026
+%
+%  Visual aesthetic: strictly monochrome/grayscale,
+%  following the Pinelli & Gonçalves (2025) academic standard.
+% ============================================================
+
+\documentclass[12pt, a4paper]{report}
+
+% ── Encoding & language ─────────────────────────────────────
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+
+% ── Typography: clean Computer Modern (lmodern) ─────────────
+\usepackage{lmodern}
+
+% ── Mathematics ─────────────────────────────────────────────
+\usepackage{amsmath, amssymb, amsthm, mathtools}
+\usepackage{bm}
+
+% ── Page layout ─────────────────────────────────────────────
+\setlength{\headheight}{15pt}
+\usepackage[
+  top=2.5cm, bottom=2.5cm,
+  left=3cm,  right=2.5cm
+]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% ── Headers, titles, TOC ────────────────────────────────────
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{emptypage}
+
+% ── Graphics ────────────────────────────────────────────────
+\usepackage{graphicx}
+
+% ── Tables ──────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{subcaption}
+
+% ── Floats ──────────────────────────────────────────────────
+\usepackage{float}
+
+% ── Code listings (for appendix) ────────────────────────────
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries,
+  commentstyle=\itshape\color{gray},
+  stringstyle=\ttfamily,
+  showstringspaces=false,
+  breaklines=true,
+  frame=single,
+  framerule=0.4pt,
+  numbers=left,
+  numberstyle=\tiny,
+  numbersep=6pt,
+  xleftmargin=1.5em,
+  language=Python,
+}
+
+% ── Appendix ────────────────────────────────────────────────
+\usepackage{appendix}
+
+% ── Cross-references: hyperref with ALL colours set to black ─
+\usepackage[
+  hidelinks,
+pdftitle = {Intro\textunderscore Research\textunderscore Thesis\textunderscore Sulpice\textunderscore Thuilliez.pdf},
+pdfauthor  = {Benjamin Sulpice, Enzo Thuilliez},
+  pdfsubject = {Mathematical Finance, Monte Carlo Methods, Machine Learning},
+  pdfkeywords= {Monte Carlo, Variance Reduction, K-Means, Control Variates,
+                Random Forest, Neural Network, Heston},
+]{hyperref}
+\usepackage{cleveref}
+
+% ── Section title formatting — purely black, no colour ───────
+\titleformat{\chapter}[display]
+  {\normalfont\Large\bfseries}
+  {\chaptertitlename\ \thechapter}{12pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{-20pt}{30pt}
+
+\titleformat{\section}{\large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{1em}{}
+
+% ── Header / footer ─────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textit{ML-Driven Variance Reduction in Monte Carlo Pricing}}
+\fancyhead[R]{\small\textit{Sulpice \& Thuilliez}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Theorem environments ─────────────────────────────────────
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{proposition}{Proposition}[chapter]
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{remark}{Remark}[chapter]
+\newtheorem{example}{Example}[chapter]
+
+% ── Useful macros ────────────────────────────────────────────
+\newcommand{\EQ}{\mathbb{E}^{\mathbb{Q}}}
+\newcommand{\EP}{\mathbb{E}^{\mathbb{P}}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\F}{\mathcal{F}}
+\newcommand{\p}{\mathbb{P}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\Cov}{\operatorname{Cov}}
+\newcommand{\dd}{\,\mathrm{d}}
+
+% ============================================================
+\begin{document}
+
+% ============================================================
+% ── COVER PAGE ──────────────────────────────────────────────
+% ============================================================
+
+\begin{titlepage}
+
+% ── LOGOS (Optically Balanced & Forced Single Line) ─────────
+\begin{center}
+    \noindent
+    \begin{minipage}[b]{0.45\textwidth}
+        \flushleft
+        \includegraphics[height=2.2cm, keepaspectratio]{logos/logo_EDHEC.png}
+    \end{minipage}%
+    \hfill
+    \begin{minipage}[b]{0.45\textwidth}
+        \flushright
+        \includegraphics[height=2.5cm, keepaspectratio]{logos/logo_UniCA.png}
+    \end{minipage}
+\end{center}
+
+\vspace{1.5cm} % <── Increased space here to give the title breathing room
+
+% ── TITLE BLOCK ─────────────────────────────────────────────
+\begin{center}
+    \rule{\textwidth}{0.6pt}
+    \vspace{0.6cm}
+    
+    {\LARGE\bfseries Machine Learning-Driven Variance \\ Reduction in Monte Carlo Pricing\par}
+    
+    \vspace{0.5cm}
+    {\large Stratified Clustering and Neural Network Control Variates\par}
+    
+    \vspace{0.6cm}
+    \rule{\textwidth}{0.6pt}
+\end{center}
+
+\vspace{2.5cm}
+
+% ── AUTHORS & SUPERVISOR ────────────────────────────────────
+\begin{center}
+    {\large\bfseries Benjamin Sulpice \quad \& \quad Enzo Thuilliez}
+    
+    \vspace{1.5cm}
+    
+    {\large Supervised by \textbf{Professor Arnaud DUFAYS}}
+\end{center}
+
+\vfill 
+
+% ── DATE ────────────────────────────────────────────────────
+\begin{center}
+    {\large May 2026}
+\end{center}
+
+\end{titlepage}
+
+
+% ── BLANK PAGE ──────────────────────────────────────────────
+\cleardoublepage
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\thispagestyle{plain}
+
+\noindent\textbf{Background and Context.}\enspace
+Derivative pricing and market risk quantification occupy a central position
+at the intersection of stochastic analysis, probability theory, and
+computational mathematics.  Since Black, Scholes, and Merton formalised the
+risk-neutral pricing framework in 1973, Monte Carlo simulation has emerged
+as the method of choice for evaluating expectations under the risk-neutral
+measure $\mathbb{Q}$, owing to its dimension-independence and natural
+handling of path-dependent payoffs.
+
+\medskip
+\noindent\textbf{Core Problem Statement.}\enspace
+The canonical Monte Carlo estimator converges at the slow rate
+$\mathcal{O}(N^{-1/2})$, where $N$ denotes the number of simulated paths.
+Halving the statistical error requires quadrupling the computational
+budget, an unacceptable trade-off in production environments where prices
+and risk sensitivities must be computed in near-real time.  Classical
+variance reduction techniques (antithetic variates, control variates,
+importance sampling) partially address this inefficiency but require
+problem-specific design that limits their applicability across diverse
+payoff structures.
+
+\medskip
+\noindent\textbf{Methodology.}\enspace
+This memoir develops a unified machine learning framework for Monte Carlo
+variance reduction.  Part~I establishes the mathematical foundations:
+risk-neutral pricing under the Black--Scholes and Heston models and the
+theoretical basis of classical variance reduction.  Part~II introduces
+trajectory clustering (K-means and Gaussian Mixture Models) to partition
+the simulation space into homogeneous regimes, then constructs data-driven
+control variates using Random Forests and feedforward neural networks
+trained to approximate the conditional payoff expectation
+$\mathbb{E}^{\mathbb{Q}}[\Phi \mid \mathbf{x}]$.
+
+\medskip
+\noindent\textbf{Primary Findings.}\enspace
+Clustering decomposes total payoff variance into between-cluster and
+within-cluster components, attacking both through stratification and local
+control variates respectively.  Random Forest control variates achieve
+variance reduction factors of $10$--$50\times$ for standard European,
+Asian, and barrier options while requiring no domain expertise in control
+selection.  Neural network control variates extend these gains to
+high-dimensional basket options and stochastic volatility settings,
+achieving correlations $\rho > 0.90$ with the payoff on pilot samples of
+$N_0 \geq 5 \times 10^4$ paths.
+
+\medskip
+\noindent\textbf{Key Implications.}\enspace
+These results establish that learned variance reduction schemes match or
+exceed classical hand-crafted methods at a fraction of the design effort,
+with direct applicability to front-office pricing engines handling diverse
+exotic payoffs.  The clustering-plus-local-learner pipeline generalises
+seamlessly to new products without analytical rederivation, positioning
+machine learning as a practical and principled component of production
+Monte Carlo infrastructure.
+
+\cleardoublepage
+
+% ── TABLE OF CONTENTS ───────────────────────────────────────
+\pagestyle{plain}
+\setcounter{tocdepth}{2}
+
+% TOC styling — monochrome
+\renewcommand{\cftsecfont}{\normalsize}
+\renewcommand{\cftchapleader}{\cftdotfill{\cftdotsep}}
+
+\tableofcontents
+\cleardoublepage
+
+\pagestyle{fancy}
+
+% ============================================================
+% ── Introduction ────────────────────────────────────────────
+% ============================================================
+\chapter*{Introduction}
+\addcontentsline{toc}{chapter}{Introduction}
+
+The valuation of financial derivatives and the quantification of market
+risk sit at the intersection of probability theory, stochastic analysis,
+and numerical mathematics.  Over the past four decades, the rapid growth
+of derivative markets has driven a remarkable convergence between
+theoretical finance and applied mathematics, producing frameworks that
+now underpin the daily operations of trading desks, risk management
+units, and asset management firms worldwide.
+
+At the core of modern derivative pricing lies a fundamental insight first
+formalised by Black, Scholes, and Merton in 1973: under certain
+no-arbitrage conditions, the price of a contingent claim can be expressed
+as a discounted expectation under a \emph{risk-neutral} probability
+measure.  For a broad class of payoff structures and underlying dynamics,
+this expectation does not admit a closed-form solution, and one must
+resort to numerical methods.  Among these, \textbf{Monte Carlo
+simulation} occupies a privileged position: it is \emph{dimension-agnostic},
+naturally handles path-dependent payoffs, and extends seamlessly to
+multi-asset or multi-factor settings that defeat finite-difference or
+lattice-based approaches.
+
+The central drawback of Monte Carlo methods is their \emph{slow
+convergence}: the statistical error in a Monte Carlo estimator decreases
+only at rate $\mathcal{O}(N^{-1/2})$, where $N$ is the number of
+simulated paths.  Halving the error requires \emph{quadrupling} the
+computational budget, an unacceptable trade-off when prices and Greeks
+must be computed in near-real time for hedging or client-quoting
+purposes.  Variance reduction techniques seek to accelerate this
+convergence without sacrificing the generality that makes Monte Carlo
+attractive in the first place.
+
+Classical variance reduction techniques such as antithetic variates,
+control variates, and importance sampling require significant domain
+expertise to be effective: the control must be chosen by hand, the change
+of measure must be derived analytically, and optimal parameters must be
+recomputed for each new product or model.  This lack of adaptability
+limits their applicability in production environments handling hundreds
+of distinct payoff structures.  Machine learning offers a fundamentally
+different approach: rather than designing variance reduction schemes by
+hand, one can learn them directly from simulated data, using flexible
+function approximators that adapt automatically to the payoff and model
+at hand, while preserving the martingale and no-arbitrage constraints
+required for consistent pricing.
+
+This memoir is organised around the following progression.  Part~I
+establishes the mathematical foundations: the risk-neutral pricing
+framework (Chapter~\ref{ch:pricing-mc}), and the theory of variance
+reduction in its classical forms (Chapter~\ref{ch:variance-reduction}).
+Part~II develops the machine learning reformulation, showing how optimal
+control variates and importance sampling schemes can be \emph{learned}
+from simulated data while preserving martingale and no-arbitrage
+constraints.  Part~III provides a numerical study, implementing and
+benchmarking the proposed methods on European, Asian, and barrier options
+under both Black--Scholes and Heston dynamics.
+
+Throughout the memoir, we privilege rigour without sacrificing economic
+intuition.  Each mathematical development is immediately contextualised
+by its practical implications for front-office pricing, hedging, and risk
+management.
+
+% ============================================================
+% PART I — Mathematical Foundations
+% ============================================================
+\part{Mathematical Foundations}
+
+% ── Chapter 1 ───────────────────────────────────────────────
+\chapter{Derivative Pricing and Monte Carlo Simulation}
+\label{ch:pricing-mc}
+
+\section{The Risk-Neutral Pricing Framework}
+
+\subsection{Probability spaces and filtrations}
+
+We work on a filtered probability space
+$(\Omega,\,\mathcal{F},\,(\mathcal{F}_t)_{t \in [0,T]},\,\mathbb{P})$,
+where $\mathbb{P}$ is the \emph{physical} (or historical) probability
+measure reflecting the actual dynamics of asset prices as observed in the
+market.  The filtration $(\F_t)_{t \geq 0}$ encodes the information
+available to market participants up to time $t$, and is assumed to
+satisfy the usual conditions (right-continuity and completeness).
+
+\begin{definition}[Contingent claim]
+A \emph{contingent claim} with maturity $T > 0$ is an $\F_T$-measurable
+random variable $\Phi \in L^2(\Omega, \F_T, \mathbb{P})$ representing
+the payoff delivered at time $T$ contingent on the realised path of the
+underlying.
+\end{definition}
+
+\begin{example}
+For a European call option with strike $K$ on an underlying $S_T$, the
+payoff is $\Phi = (S_T - K)^+$.  For an Asian call,
+$\Phi = \bigl(\bar{S}_T - K\bigr)^+$ where
+$\bar{S}_T = \frac{1}{T}\int_0^T S_t \dd t$ is the running average.
+\end{example}
+
+\subsection{No-arbitrage and the risk-neutral measure}
+
+The \emph{First Fundamental Theorem of Asset Pricing} (Harrison \&
+Kreps, 1979; Delbaen \& Schachermayer, 1994) establishes the equivalence
+between the absence of arbitrage and the existence of an \emph{equivalent
+martingale measure} (EMM).
+
+\begin{theorem}[First Fundamental Theorem]
+Let $r \geq 0$ be the continuously compounded risk-free rate and let
+$\tilde{S}_t = e^{-rt}S_t$ denote the discounted price process.  The
+market is free of arbitrage (in the sense of NFLVR) if and only if there
+exists a probability measure $\Q \sim \mathbb{P}$ under which
+$\tilde{S}$ is a local martingale.  Such a measure $\Q$ is called a
+\emph{risk-neutral} (or \emph{pricing}) measure.
+\end{theorem}
+
+When the EMM is unique, the market is said to be \emph{complete}: every
+contingent claim is replicable by a self-financing trading strategy.  The
+Black--Scholes model, driven by a single Brownian motion, is a canonical
+example of a complete market.  Models with stochastic volatility (e.g.\
+Heston) or jumps introduce incompleteness and give rise to a family of
+pricing measures.
+
+\subsection{The fundamental pricing equation}
+
+Under the risk-neutral measure $\Q$, the fair value at time $0$ of a
+contingent claim $\Phi$ is given by the discounted risk-neutral
+expectation:
+
+\begin{equation}
+  \boxed{V_0 = e^{-rT}\,\EQ\!\left[\Phi\right]}
+  \label{eq:pricing}
+\end{equation}
+
+\noindent where the expectation is taken with respect to $\Q$.  More
+generally, the price process $(V_t)_{t \in [0,T]}$ is a
+$\Q$-martingale after discounting, satisfying:
+\[
+  V_t = e^{-r(T-t)}\,\EQ\!\left[\Phi \,\middle|\, \F_t\right],
+  \qquad t \in [0,T].
+\]
+
+Equation~\eqref{eq:pricing} is the starting point for all numerical
+pricing methods.  The challenge lies in computing this expectation
+efficiently when no analytical formula is available.
+
+\section{The Black--Scholes Model}
+
+\subsection{Geometric Brownian motion}
+
+The \emph{Black--Scholes--Merton} (BSM) model (Black \& Scholes, 1973;
+Merton, 1973) postulates that the underlying asset price follows a
+\emph{geometric Brownian motion} (GBM) under the physical measure:
+\[
+  \dd S_t = \mu\, S_t\, \dd t + \sigma\, S_t\, \dd W_t^{\mathbb{P}},
+\]
+where $\mu \in \R$ is the drift, $\sigma > 0$ is the (constant)
+volatility, and $W^{\mathbb{P}}$ is a standard Brownian motion under
+$\mathbb{P}$.
+
+By Girsanov's theorem, there exists a unique EMM $\Q$ under which
+$W_t^{\Q} = W_t^{\mathbb{P}} + \frac{\mu - r}{\sigma}t$ is a standard
+Brownian motion (the Sharpe ratio $\frac{\mu-r}{\sigma}$ is the
+\emph{market price of risk}).  Under $\Q$:
+\[
+  \dd S_t = r\, S_t\, \dd t + \sigma\, S_t\, \dd W_t^{\Q}.
+\]
+
+Applying Itô's lemma to $\log S_t$ yields the closed-form solution:
+\begin{equation}
+  S_T = S_0 \exp\!\left[\left(r - \tfrac{1}{2}\sigma^2\right)T
+      + \sigma\, W_T^{\Q}\right]
+      = S_0 \exp\!\left[\left(r - \tfrac{1}{2}\sigma^2\right)T
+      + \sigma\sqrt{T}\,Z\right],
+  \label{eq:gbm-solution}
+\end{equation}
+where $Z \sim \mathcal{N}(0,1)$ under $\Q$.
+
+\subsection{The Black--Scholes formula}
+
+For a European call option $\Phi = (S_T - K)^+$, inserting
+\eqref{eq:gbm-solution} into \eqref{eq:pricing} and evaluating the
+Gaussian integral yields the celebrated closed-form:
+
+\begin{equation}
+  V_0^{\text{call}} = S_0\,\mathcal{N}(d_1) - K e^{-rT}\,\mathcal{N}(d_2),
+  \label{eq:BS-call}
+\end{equation}
+where
+\[
+  d_1 = \frac{\ln(S_0/K) + (r + \sigma^2/2)T}{\sigma\sqrt{T}}, \qquad
+  d_2 = d_1 - \sigma\sqrt{T},
+\]
+and $\mathcal{N}$ denotes the standard normal CDF.  Put-call parity
+immediately gives the put price.
+
+Despite its analytical elegance, the BSM model carries well-documented
+empirical shortcomings: the volatility surface observed in liquid options
+markets exhibits a pronounced \emph{skew} and \emph{smile} structure
+inconsistent with the constant-$\sigma$ assumption.  Path-dependent or
+exotic payoffs also render \eqref{eq:BS-call} inapplicable, motivating
+the need for simulation-based pricing.
+
+\section{The Heston Stochastic Volatility Model}
+
+\subsection{Model specification}
+
+To address the empirical failures of BSM, Heston (1993) proposed a model
+in which volatility is itself a stochastic process.  Under $\Q$, the
+joint dynamics are:
+\begin{align}
+  \dd S_t &= r\,S_t\,\dd t + \sqrt{V_t}\,S_t\,\dd W_t^S, \label{eq:heston-S}\\
+  \dd V_t &= \kappa(\theta - V_t)\,\dd t + \xi\sqrt{V_t}\,\dd W_t^V, \label{eq:heston-V}\\
+  \dd\langle W^S, W^V\rangle_t &= \rho\,\dd t, \label{eq:heston-corr}
+\end{align}
+where $V_t = \sigma_t^2$ is the instantaneous variance, $\kappa > 0$ is
+the mean-reversion speed, $\theta > 0$ is the long-run variance,
+$\xi > 0$ is the volatility of volatility, and $\rho \in (-1, 1)$ is
+the correlation between the two Brownian motions.
+
+\begin{definition}[Feller condition]
+The \emph{Feller condition} $2\kappa\theta > \xi^2$ ensures that the
+variance process $V_t$ remains strictly positive almost surely,
+guaranteeing the well-posedness of the model.
+\end{definition}
+
+The Heston model can reproduce the implied volatility smile through the
+interplay of $\rho$ (controlling skew) and $\xi$ (controlling the
+curvature of the smile).  Semi-analytical prices for vanilla options are
+available via Fourier inversion of the characteristic function of
+$\log S_T$, but exotic payoffs again require Monte Carlo simulation.
+
+\subsection{Euler--Maruyama discretisation}
+
+For simulation purposes, the continuous-time
+system~\eqref{eq:heston-S}--\eqref{eq:heston-V} is discretised on a
+uniform time grid $0 = t_0 < t_1 < \cdots < t_M = T$ with step
+$\Delta t = T/M$.  The \emph{Euler--Maruyama} scheme reads:
+\begin{align*}
+  V_{t_{k+1}} &= V_{t_k} + \kappa(\theta - V_{t_k})\Delta t
+                 + \xi\sqrt{V_{t_k}^+}\,\Delta W^V_k,\\
+  S_{t_{k+1}} &= S_{t_k}\exp\!\left[\left(r - \tfrac{1}{2}V_{t_k}^+\right)\Delta t
+                 + \sqrt{V_{t_k}^+\,\Delta t}\,Z_k^S\right],
+\end{align*}
+where $V^+ = \max(V,0)$ is the \emph{full truncation} scheme to prevent
+negative variance, $\Delta W^V_k \sim \mathcal{N}(0,\Delta t)$, and
+$(Z_k^S, \Delta W^V_k)$ are drawn from a bivariate normal with
+correlation $\rho$.
+
+More sophisticated discretisation schemes --- Milstein, QE (Andersen,
+2008), BK --- offer superior bias properties at the cost of additional
+complexity; these are discussed in Part~III.
+
+\section{Monte Carlo Simulation for Derivative Pricing}
+
+\subsection{The Monte Carlo estimator}
+
+The Monte Carlo approach to evaluating \eqref{eq:pricing} is
+conceptually straightforward.  One simulates $N$ independent paths of
+the underlying under $\Q$, computes the payoff on each path, and takes
+the discounted sample mean:
+
+\begin{equation}
+  \hat{V}_0^{MC} = e^{-rT}\,\frac{1}{N}\sum_{i=1}^{N} \Phi(\omega_i),
+  \label{eq:mc-estimator}
+\end{equation}
+where $\omega_i$ denotes the $i$-th simulated path.  By the Strong Law
+of Large Numbers, $\hat{V}_0^{MC} \to V_0$ almost surely as
+$N \to \infty$, provided $\EQ[|\Phi|] < \infty$.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.65\textwidth]{figures/figure_1_trajectoires.png}
+  \caption{Two hundred simulated trajectories of the underlying asset
+           price $S_t$ under the risk-neutral measure $\mathbb{Q}$,
+           following geometric Brownian motion with parameters
+           $S_0 = K = 100$, $r = 5\%$, $\sigma = 20\%$, $T = 1$ year
+           and $M = 252$ daily time steps.
+           \textit{Left:} European call --- paths finishing above the
+           strike $K$ (in-the-money, dark blue) contribute a strictly
+           positive payoff $(S_T - K)^+$, while paths finishing below
+           (light blue) yield a zero payoff.
+           \textit{Right:} European put --- in-the-money paths (dark red)
+           finish below $K$.
+           The dashed line marks the strike level; the Black--Scholes
+           analytical price $V_0$ is reported for each contract.}
+  \label{fig:mc-trajectories}
+\end{figure}
+
+\subsection{Convergence and the $\mathcal{O}(N^{-1/2})$ rate}
+
+The quality of the estimator~\eqref{eq:mc-estimator} is measured by its
+\emph{root mean squared error} (RMSE), which by the Central Limit
+Theorem satisfies:
+
+\begin{equation}
+  \mathrm{RMSE}(\hat{V}_0^{MC}) = \frac{e^{-rT}\,\sigma_\Phi}{\sqrt{N}}
+  = \mathcal{O}\!\left(N^{-1/2}\right),
+  \label{eq:mc-convergence}
+\end{equation}
+where $\sigma_\Phi^2 = \Var_{\Q}[\Phi]$ is the variance of the
+(undiscounted) payoff, as illustrated in Figure~\ref{fig:mc-rmse}.
+Crucially, this rate is \emph{dimension-independent}: unlike
+finite-difference methods, which suffer from the \emph{curse of
+dimensionality} (error scaling as $\mathcal{O}(h^p)$ where $h$ is the
+grid spacing in each of $d$ dimensions), the Monte Carlo rate
+$\mathcal{O}(N^{-1/2})$ is unaffected by the number of risk factors.
+
+The $\mathcal{O}(N^{-1/2})$ rate implies that achieving double
+precision (halving the error) requires \emph{four times} as many
+simulations.  For reference, a typical front-office pricing engine
+running $N = 10^6$ paths achieves a relative error of roughly $0.1\%$
+--- acceptable for vanilla options but insufficient for Delta/Vega
+hedging where Greeks are obtained by finite differences and the noise is
+amplified.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth]{figures/figure_2_RMSE.png}
+  \caption{Empirical RMSE of the Monte Carlo estimator $\hat{V}_0^{MC}$
+           as a function of the number of simulated paths $N$, for a
+           European call (solid blue) and a European put (dashed red),
+           under Black--Scholes dynamics with parameters $S_0 = K = 100$,
+           $r = 5\%$, $\sigma = 20\%$, $T = 1$ year.  The RMSE is
+           estimated over $200$ independent replications for each value
+           of $N$.  The dotted black line represents the theoretical
+           $\mathcal{O}(N^{-1/2})$ reference slope.  Both axes are on
+           a logarithmic scale, confirming the expected decay rate:
+           halving the RMSE requires quadrupling the computational
+           budget.}
+  \label{fig:mc-rmse}
+\end{figure}
+
+\subsection{The variance problem and its consequences}
+
+The payoff variance $\sigma_\Phi^2$ is the sole driver of the Monte
+Carlo error in~\eqref{eq:mc-convergence}.  For several practically
+important payoff types, this variance is large:
+
+\begin{itemize}
+  \item \textbf{Deep out-of-the-money options}: the payoff is zero with
+        high probability and very large on rare events, leading to
+        heavy-tailed distributions and extreme variance.
+  \item \textbf{Digital (binary) options}: the payoff jumps
+        discontinuously, producing high sensitivity to the exact
+        crossing of a threshold.
+  \item \textbf{Barrier options}: the payoff depends on whether a path
+        crosses a barrier level, introducing additional path-dependency
+        that inflates variance when the barrier is close to the spot.
+  \item \textbf{Greeks via finite differences}: even when the option
+        price is estimated with acceptable accuracy, the
+        finite-difference Greek estimator
+        $\hat{\Delta} \approx (\hat{V}_0(S_0 + \varepsilon) -
+        \hat{V}_0(S_0))/\varepsilon$ can have catastrophically high
+        variance as $\varepsilon \to 0$.
+\end{itemize}
+
+These limitations motivate the study of \emph{variance reduction
+techniques}, which aim to decrease $\sigma_\Phi^2$ --- or equivalently
+increase the effective sample size $N$ for a fixed computational budget
+--- without introducing bias into the estimator.
+
+\begin{remark}
+A complementary approach to variance reduction is \emph{Quasi-Monte
+Carlo} (QMC), which replaces pseudo-random draws with deterministic
+low-discrepancy sequences (e.g.\ Sobol', Halton) to achieve convergence
+rates approaching $\mathcal{O}(N^{-1})$ in practice.  While powerful,
+QMC is less straightforward to combine with adaptive machine learning
+schemes; we briefly revisit it in Chapter~\ref{ch:variance-reduction}.
+\end{remark}
+
+\subsection{Confidence intervals and practical diagnostics}
+
+For a given simulation with $N$ paths, a $(1-\alpha)$ confidence
+interval for $V_0$ is:
+\[
+  \hat{V}_0^{MC} \pm z_{\alpha/2}\,\frac{e^{-rT}\hat{\sigma}_\Phi}{\sqrt{N}},
+\]
+where $\hat{\sigma}_\Phi$ is the sample standard deviation of the
+payoffs and $z_{\alpha/2}$ is the appropriate normal quantile
+($z_{0.025} = 1.96$ for $95\%$ coverage).
+
+In practice, one monitors the \emph{coefficient of variation}
+$\mathrm{CV} = \hat{\sigma}_\Phi / |\hat{V}_0^{MC}|$ as a relative
+measure of simulation noise.  A CV above $10\%$ is typically
+unacceptable in a production environment.
+
+\section{Summary}
+
+This chapter has established the conceptual and mathematical foundations
+for the rest of the memoir.  We have:
+
+\begin{enumerate}
+  \item Introduced the risk-neutral pricing framework and derived the
+        fundamental pricing equation $V_0 = e^{-rT}\EQ[\Phi]$.
+  \item Presented the Black--Scholes model, its closed-form solution for
+        vanilla options, and the Euler--Maruyama simulation scheme.
+  \item Extended the framework to the Heston stochastic volatility model,
+        motivating the need for path simulation.
+  \item Formalised the Monte Carlo estimator and its
+        $\mathcal{O}(N^{-1/2})$ convergence rate, and identified the
+        high-variance regimes that limit its practical applicability.
+\end{enumerate}
+
+Chapter~\ref{ch:variance-reduction} now turns to classical variance
+reduction techniques --- antithetic variables, control variates, and
+importance sampling --- which form the conceptual precursors to the
+machine-learning methods developed in Part~II.
+
+% ============================================================
+%  CHAPTER 2 -- Classical Variance Reduction Techniques
+% ============================================================
+\chapter{Classical Variance Reduction Techniques}
+\label{ch:variance-reduction}
+
+As established in Chapter~\ref{ch:pricing-mc}, the Monte Carlo
+estimator converges at the slow rate $\mathcal{O}(N^{-1/2})$, with
+the error driven entirely by the payoff variance
+$\sigma_\Phi^2 = \Var_{\Q}[\Phi]$.  The natural question is therefore:
+can one construct an alternative unbiased estimator with strictly smaller
+variance, without increasing the computational budget?  This chapter
+presents four classical methods that answer affirmatively ---
+antithetic variates, control variates, importance sampling, and
+stratified sampling --- each exploiting a different structural property
+of the pricing problem.  Together, they form the theoretical baseline
+against which the machine learning methods of Part~II are evaluated.
+
+\section{Antithetic Variates}
+\label{sec:antithetic}
+
+The antithetic variates method is the simplest variance reduction
+technique.  It rests on a single observation: for any integrable function
+$\Phi$ and a symmetric random variable $Z \sim \mathcal{N}(0,1)$, the
+pair $(\Phi(Z),\, \Phi(-Z))$ has the same marginal distribution as
+$(\Phi(Z),\, \Phi(Z))$, but may be negatively correlated.  Averaging the
+two gives a lower-variance estimator at no additional simulation cost.
+
+\begin{definition}[Antithetic estimator]
+Let $Z_1, \ldots, Z_N \overset{\text{i.i.d.}}{\sim} \mathcal{N}(0,1)$.
+The antithetic estimator is:
+\begin{equation}
+    \hat{V}_0^{AV} = \frac{e^{-rT}}{N} \sum_{i=1}^{N}
+    \frac{\Phi(Z_i) + \Phi(-Z_i)}{2}.
+    \label{eq:av-estimator}
+\end{equation}
+\end{definition}
+
+The estimator is unbiased by symmetry of the normal distribution.  Its
+variance satisfies:
+\begin{equation}
+    \Var\!\left[\hat{V}_0^{AV}\right]
+    = \frac{e^{-2rT}}{2N}
+    \Bigl(\Var[\Phi(Z)] + \Cov[\Phi(Z),\,\Phi(-Z)]\Bigr).
+    \label{eq:av-variance}
+\end{equation}
+
+Variance reduction occurs whenever $\Cov[\Phi(Z),\Phi(-Z)] < 0$, which
+is guaranteed when $\Phi$ is a \emph{monotone} function of $Z$.  For a
+European call under Black--Scholes, the payoff
+$(S_0 e^{(r - \sigma^2/2)T + \sigma\sqrt{T}Z} - K)^+$ is strictly
+increasing in $Z$, so antithetic pairs are always negatively correlated
+in this setting.  Empirically, the method yields variance reductions of
+$5$--$10\times$ for at-the-money vanilla options (Glasserman, 2004).
+
+The method is less effective for non-monotone payoffs such as straddles
+or certain path-dependent structures, where
+$\Cov[\Phi(Z), \Phi(-Z)]$ may be close to zero or even positive.
+
+\section{Control Variates}
+\label{sec:control-variates}
+
+Control variates exploit a correlated quantity whose expectation is known
+analytically.  Let $Y$ be a random variable --- the \emph{control} ---
+with known mean $\mu_Y = \mathbb{E}^{\Q}[Y]$ and positively correlated
+with $\Phi$.  For any scalar $c \in \R$, the estimator:
+\begin{equation}
+    \hat{V}_0^{CV}(c) = \frac{e^{-rT}}{N} \sum_{i=1}^{N}
+    \bigl[\Phi(\omega_i) - c\,(Y_i - \mu_Y)\bigr]
+    \label{eq:cv-estimator}
+\end{equation}
+is unbiased for all $c$, since $\mathbb{E}[Y_i - \mu_Y] = 0$.
+
+\begin{proposition}[Optimal coefficient]
+The variance of $\hat{V}_0^{CV}(c)$ is minimised by:
+\begin{equation}
+    c^* = \frac{\Cov[\Phi,\, Y]}{\Var[Y]},
+    \label{eq:cv-optimal}
+\end{equation}
+yielding the reduced variance:
+\begin{equation}
+    \Var\!\left[\hat{V}_0^{CV}(c^*)\right]
+    = \Var[\Phi]\,\bigl(1 - \rho_{\Phi,Y}^2\bigr),
+    \label{eq:cv-variance}
+\end{equation}
+where $\rho_{\Phi,Y} = \mathrm{Corr}[\Phi,\, Y]$.
+\end{proposition}
+
+The factor $(1 - \rho_{\Phi,Y}^2)$ quantifies the gain: a correlation
+of $|\rho| = 0.95$ already reduces variance by a factor of $10$.  The
+challenge lies in identifying a useful control.  In the Black--Scholes
+setting, the geometric Asian call --- whose price is available in closed
+form (Kemna \& Vorst, 1990) --- serves as a natural control for the
+arithmetic Asian call, typically achieving $|\rho| > 0.99$.
+
+In practice, $c^*$ is unknown and estimated from the same simulation
+batch via ordinary least squares regression of $\Phi$ on $Y$,
+introducing only a negligible finite-sample bias for moderate $N$.
+
+\section{Importance Sampling}
+\label{sec:importance-sampling}
+
+Importance sampling addresses a different source of inefficiency: for
+out-of-the-money options, most simulated paths yield a zero payoff,
+contributing nothing to the estimator while consuming computational
+resources.  The idea is to simulate under an alternative measure
+$\tilde{\Q}$ that concentrates paths in the payoff-relevant region, and
+to correct for the change of measure via a likelihood ratio.
+
+Let $\tilde{\Q}$ be a probability measure equivalent to $\Q$, with
+Radon--Nikodym derivative $L = \dd\Q / \dd\tilde{\Q}$.  Then:
+\begin{equation}
+    V_0 = e^{-rT}\,\EQ[\Phi]
+        = e^{-rT}\,\mathbb{E}^{\tilde{\Q}}[\Phi \cdot L],
+    \label{eq:is-identity}
+\end{equation}
+which motivates the importance sampling estimator:
+\begin{equation}
+    \hat{V}_0^{IS} = \frac{e^{-rT}}{N} \sum_{i=1}^{N}
+    \Phi(\tilde{\omega}_i)\,L(\tilde{\omega}_i),
+    \label{eq:is-estimator}
+\end{equation}
+where $\tilde{\omega}_1, \ldots, \tilde{\omega}_N \sim \tilde{\Q}$.
+The estimator is unbiased by~\eqref{eq:is-identity}.
+
+\begin{proposition}[Zero-variance measure]
+The variance of $\hat{V}_0^{IS}$ is zero if and only if:
+\[
+    \frac{\dd\tilde{\Q}^*}{\dd\Q} \propto \Phi.
+\]
+\end{proposition}
+
+This result is theoretically exact but practically circular, since
+constructing $\tilde{\Q}^*$ requires knowing $V_0$.  In the
+Black--Scholes setting, a tractable approximation is \emph{exponential
+tilting}: one shifts the drift of $W^{\Q}$ by a constant $\theta$, so
+that the mean of $\log S_T$ under $\tilde{\Q}_\theta$ is shifted toward
+$\log K$.  The likelihood ratio takes the simple form
+$L_\theta = \exp(-\theta W_T - \frac{1}{2}\theta^2 T)$, and the
+optimal $\theta$ is found by minimising the variance of
+$\Phi \cdot L_\theta$ numerically.  For deep out-of-the-money options,
+this approach can reduce variance by several orders of magnitude.
+
+In high-dimensional settings, however, designing effective changes of
+measure becomes significantly harder: poorly chosen $\tilde{\Q}$ leads
+to \emph{weight degeneracy}, where a few paths carry extreme likelihood
+ratios, inflating the variance of the weighted estimator.
+
+\section{Stratified Sampling}
+\label{sec:stratification}
+
+Stratified sampling ensures that the simulation covers the probability
+space more uniformly than pure random sampling.  One partitions the
+driving uniform variable $U \in [0,1]$ into $K$ equal-probability
+strata $A_k = \bigl[\frac{k-1}{K}, \frac{k}{K}\bigr)$, draws one
+sample per stratum, and uses the inverse transform to obtain the
+corresponding path.  The resulting estimator is:
+\begin{equation}
+    \hat{V}_0^{ST} = \frac{e^{-rT}}{N} \sum_{k=1}^{K}
+    \sum_{i=1}^{n_k} \Phi\!\left(F^{-1}\!\left(U_i^{(k)}\right)\right),
+    \label{eq:strat-estimator}
+\end{equation}
+where $U_i^{(k)} \sim \mathrm{Uniform}(A_k)$ and $F^{-1}$ is the
+quantile function of the relevant marginal distribution.
+
+The variance reduction relative to crude Monte Carlo is:
+\begin{equation}
+    \Var[\hat{V}_0^{MC}] - \Var[\hat{V}_0^{ST}]
+    = \frac{e^{-2rT}}{N} \sum_{k=1}^{K} p_k\,(\mu_k - V_0 e^{rT})^2
+    \geq 0,
+    \label{eq:strat-gain}
+\end{equation}
+where $\mu_k = \EQ[\Phi \,|\, A_k]$ is the within-stratum conditional
+mean.  The gain is large when the stratum means differ --- i.e.\ when
+the chosen stratification variable is informative about the payoff.
+
+For a fixed total budget $N$, variance is further minimised by the
+\emph{Neyman allocation} $n_k^* \propto p_k \sigma_k$, which assigns
+more paths to strata with higher within-stratum standard deviation
+$\sigma_k$.
+
+\section{Summary and Motivation for Machine Learning}
+\label{sec:vr-summary}
+
+% Table uses booktabs (no vertical lines) — upgrade from original
+\begin{table}[H]
+\centering
+\caption{Comparative overview of classical variance reduction
+         techniques.  Implementation difficulty and high-dimension
+         performance are qualitative assessments; typical variance
+         gains are reported from Glasserman (2004).}
+\label{tab:vr-comparison}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Method} & \textbf{Unbiased} & \textbf{Implementation}
+                & \textbf{Typical gain} & \textbf{High dimension} \\
+\midrule
+Antithetic variates  & Yes & Trivial  & $2$--$10\times$    & Poor \\
+Control variates     & Yes & Easy     & $10$--$100\times$  & Moderate \\
+Importance sampling  & Yes & Moderate & up to $1000\times$ & Poor \\
+Stratified sampling  & Yes & Moderate & $2$--$20\times$    & Moderate \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All four methods share a common limitation: they require
+\emph{problem-specific design}.  Antithetic variates require a monotone
+payoff; control variates require an analytically tractable correlated
+quantity; importance sampling requires a tractable approximate change of
+measure; stratification requires a well-chosen partition variable.  Each
+optimal parameter --- $c^*$, $\theta^*$, $n_k^*$ --- must be re-derived
+whenever the model or payoff changes, which is impractical in a
+front-office environment handling hundreds of distinct products.
+
+This motivates the central contribution of Part~II: rather than
+designing variance reduction schemes by hand, one can \emph{learn} them
+directly from simulated data.  Specifically, neural networks can
+parametrise both the control variate function and the change-of-measure
+density, trained to minimise the empirical variance of the Monte Carlo
+estimator subject to the unbiasedness constraint.  The classical methods
+of this chapter then become special cases of a general learned framework,
+and the theoretical upper bounds on variance reduction they establish
+serve as benchmarks for the machine learning approach.
+
+% ============================================================
+%  PART II — Machine Learning for Variance Reduction
+% ============================================================
+\part{Machine Learning for Variance Reduction}
+
+% ── Chapter 3 ───────────────────────────────────────────────
+\chapter{Clustering of Monte Carlo Trajectories}
+\label{ch:clustering}
+
+The classical variance reduction techniques of
+Chapter~\ref{ch:variance-reduction} apply a single global estimator
+uniformly across all simulated paths.  This is suboptimal when the
+simulation space is heterogeneous: a path that ends deep in-the-money
+and a path that ends deep out-of-the-money carry very different
+information about the option price, yet they are treated identically by
+a global control variate or a global importance sampling scheme.
+
+The idea of this chapter is simple: before applying any variance
+reduction, \emph{group} the simulated paths into clusters of similar
+behaviour, and then apply variance reduction \emph{locally} within each
+cluster.  Paths within the same cluster are more homogeneous than the
+full population, so local estimators are more accurate.  This is the
+core intuition behind trajectory clustering for Monte Carlo simulation.
+
+The chapter is organised as follows.  Section~\ref{sec:features}
+explains how to summarise each path by a small set of numbers (its
+\emph{features}), and why normalising those features is essential.
+Section~\ref{sec:kmeans} introduces the K-means clustering algorithm.
+Section~\ref{sec:gmm} presents Gaussian Mixture Models as a more
+flexible alternative.  Sections~\ref{sec:adaptive-allocation}
+and~\ref{sec:local-cv} then show precisely how clustering reduces
+variance, through adaptive allocation and local control variates
+respectively.
+
+\section{From Paths to Feature Vectors}
+\label{sec:features}
+
+\subsection{Why not cluster paths directly?}
+
+A Monte Carlo path
+$\omega_i = (S_{t_0}^{(i)}, \ldots, S_{t_M}^{(i)})$ with $M = 252$
+daily steps lives in $\R^{252}$.  Clustering directly in this space is
+problematic for two reasons.  First, computing distances between
+$N = 10^5$ vectors in $\R^{252}$ is computationally expensive.  Second,
+and more fundamentally, distance measures become unreliable in high
+dimensions: in $\R^{252}$, most pairs of points are approximately
+equidistant from each other, making it impossible to define meaningful
+clusters.  This phenomenon is known as the \emph{curse of
+dimensionality}.
+
+The solution is to map each path to a small number $d$ of summary
+statistics --- its \emph{feature vector}
+$\mathbf{x}_i \in \R^d$ with $d \ll M$ --- that capture the financially
+relevant behaviour of the path.  Clustering is then performed in this
+low-dimensional feature space.
+
+\subsection{Financially motivated features}
+
+The choice of features is guided by the type of option being priced.
+The following five statistics cover the most common situations.
+
+\textbf{Terminal value} $x_i^{(1)} = S_T^{(i)}$.  For European options,
+the payoff depends only on $S_T$, so this single number is the most
+informative feature.
+
+\textbf{Realised volatility.}  The annualised realised variance measures
+how much the path fluctuated along the way:
+\begin{equation}
+    x_i^{(2)} = \hat{\sigma}_i^2
+    = \frac{1}{(M-1)\Delta t} \sum_{k=1}^{M}
+    \left(\log\frac{S_{t_k}^{(i)}}{S_{t_{k-1}}^{(i)}}\right)^2.
+    \label{eq:realised-vol}
+\end{equation}
+
+\textbf{Maximum drawdown.}  The largest peak-to-trough decline:
+\begin{equation}
+    x_i^{(3)} = \max_{0 \leq j \leq k \leq M}
+    \frac{S_{t_j}^{(i)} - S_{t_k}^{(i)}}{S_{t_j}^{(i)}},
+    \label{eq:max-drawdown}
+\end{equation}
+is particularly relevant for barrier and lookback options.
+
+\textbf{Barrier hitting time.}  For a barrier option with barrier level
+$B$:
+\begin{equation}
+    x_i^{(4)} = \tau_B^{(i)}
+    = \min\bigl\{t_k : S_{t_k}^{(i)} \leq B\bigr\},
+    \label{eq:hitting-time}
+\end{equation}
+(set to $T$ if the barrier is never hit).
+
+\textbf{Running average.}  For Asian options:
+\[
+    x_i^{(5)} = \bar{S}^{(i)} = \frac{1}{M}\sum_{k=1}^{M} S_{t_k}^{(i)}.
+\]
+
+In practice, one selects $d = 2$ to $5$ features depending on the
+option type, and proceeds to the normalisation step below.
+
+\subsection{Feature normalisation}
+
+Before clustering, it is essential to \emph{normalise} the features.
+The standard remedy is \emph{standardisation}: for each feature
+$\ell \in \{1, \ldots, d\}$, replace each raw value by:
+\begin{equation}
+    \tilde{x}_i^{(\ell)}
+    = \frac{x_i^{(\ell)} - \bar{x}^{(\ell)}}{\hat{s}^{(\ell)}},
+    \label{eq:standardisation}
+\end{equation}
+where $\bar{x}^{(\ell)}$ and $\hat{s}^{(\ell)}$ are the sample mean
+and standard deviation of feature $\ell$ across all $N$ paths.
+
+\section{K-Means Clustering}
+\label{sec:kmeans}
+
+\subsection{The core idea}
+
+The goal of clustering is to partition the $N$ feature vectors
+$\mathbf{x}_1, \ldots, \mathbf{x}_N \in \R^d$ into $K$ groups such
+that points within the same group are as similar as possible.  K-means
+formalises this by minimising the total squared distance from each point
+to the centre of its group.
+
+To measure similarity, K-means uses the \emph{Euclidean distance}:
+\begin{equation}
+    d(\mathbf{x}_i, \mathbf{x}_j)
+    = \|\mathbf{x}_i - \mathbf{x}_j\|_2
+    = \sqrt{\sum_{\ell=1}^{d}
+      \bigl(x_i^{(\ell)} - x_j^{(\ell)}\bigr)^2}.
+    \label{eq:euclidean}
+\end{equation}
+
+\subsection{Objective and algorithm}
+
+Given $K$ clusters $C_1, \ldots, C_K$ and their centroids
+$\boldsymbol{\mu}_1, \ldots, \boldsymbol{\mu}_K \in \R^d$, the
+\emph{within-cluster inertia} measures how compact the clusters are:
+\begin{equation}
+    \mathcal{J}(\mathcal{C}) = \sum_{k=1}^{K} \sum_{i \in C_k}
+    \|\mathbf{x}_i - \boldsymbol{\mu}_k\|^2.
+    \label{eq:kmeans-objective}
+\end{equation}
+
+\begin{definition}[K-means algorithm]
+Starting from $K$ randomly initialised centroids:
+\begin{enumerate}
+    \item \textbf{Assignment}: assign each point to its nearest centroid,
+    \[
+        k^*(i) = \arg\min_{k \in \{1,\ldots,K\}}
+        \|\mathbf{x}_i - \boldsymbol{\mu}_k\|^2;
+    \]
+    \item \textbf{Update}: recompute each centroid as the mean of its
+    assigned points,
+    \[
+        \boldsymbol{\mu}_k
+        = \frac{1}{|C_k|}\sum_{i \in C_k} \mathbf{x}_i.
+    \]
+\end{enumerate}
+These two steps repeat until no point changes cluster between two
+consecutive iterations.
+\end{definition}
+
+\subsection{Limitations of K-means}
+\label{sec:kmeans-limitations}
+
+Three structural limitations motivate the introduction of Gaussian
+Mixture Models.  First, K-means implicitly assumes that clusters are
+spherical and roughly equal in size; financial path features are often
+elongated or asymmetric.  Second, each path belongs to exactly one
+cluster with no measure of confidence, inflating within-cluster variance
+near boundaries.  Third, the centroid is the arithmetic mean and is
+sensitive to extreme values.  The K-means++ initialisation (Arthur \&
+Vassilvitskii, 2007) partially addresses the third issue.
+
+\subsection{Choosing the number of clusters $K$}
+
+Two standard methods identify a good value of $K$.
+
+\textbf{Elbow method.}  Plot the inertia $\mathcal{J}(K)$ as a
+function of $K$ and identify the value beyond which the gain becomes
+small.
+
+\textbf{Silhouette coefficient.}  For each point $\mathbf{x}_i$ in
+cluster $C_k$, define $a_i$ as the mean within-cluster distance and
+$b_i$ as the mean distance to the nearest other cluster.  The
+silhouette score is:
+\begin{equation}
+    s_i = \frac{b_i - a_i}{\max(a_i,\, b_i)} \in [-1, 1].
+    \label{eq:silhouette}
+\end{equation}
+The optimal $K$ maximises the average silhouette
+$\bar{s}(K) = \frac{1}{N}\sum_i s_i$, with $\bar{s} > 0.5$ indicating
+well-separated clusters.
+
+\section{Gaussian Mixture Models}
+\label{sec:gmm}
+
+\subsection{Model definition}
+
+\begin{definition}[Gaussian Mixture Model]
+A GMM with $K$ components models the density of $\mathbf{x} \in \R^d$
+as:
+\begin{equation}
+    p(\mathbf{x}) = \sum_{k=1}^{K} \pi_k\,
+    \mathcal{N}(\mathbf{x};\, \boldsymbol{\mu}_k,\,
+    \boldsymbol{\Sigma}_k),
+    \label{eq:gmm}
+\end{equation}
+where $\pi_k > 0$ with $\sum_k \pi_k = 1$ are the \emph{mixing
+weights}, $\boldsymbol{\mu}_k \in \R^d$ are the component means, and
+$\boldsymbol{\Sigma}_k \in \R^{d \times d}$ are positive definite
+covariance matrices.
+\end{definition}
+
+\subsection{The EM algorithm}
+
+The parameters $\theta = \{\pi_k, \boldsymbol{\mu}_k,
+\boldsymbol{\Sigma}_k\}_{k=1}^K$ are estimated via the
+\emph{Expectation-Maximisation} (EM) algorithm.
+
+\textbf{E-step.}  Compute for each observation $\mathbf{x}_i$ the
+\emph{responsibility} of component $k$:
+\begin{equation}
+    \gamma_{ik} = \mathbb{P}(Z_i = k \mid \mathbf{x}_i;\, \theta^{(t)})
+    = \frac{\pi_k\,\mathcal{N}(\mathbf{x}_i;\,
+      \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k)}
+    {\sum_{j=1}^K \pi_j\,\mathcal{N}(\mathbf{x}_i;\,
+      \boldsymbol{\mu}_j, \boldsymbol{\Sigma}_j)}.
+    \label{eq:em-estep}
+\end{equation}
+
+\textbf{M-step.}  Update parameters via weighted averages:
+\begin{align}
+    N_k &= \sum_{i=1}^N \gamma_{ik}, \qquad
+    \pi_k^{(t+1)} = \frac{N_k}{N}, \label{eq:em-pi}\\
+    \boldsymbol{\mu}_k^{(t+1)} &= \frac{1}{N_k}
+    \sum_{i=1}^N \gamma_{ik}\,\mathbf{x}_i, \label{eq:em-mu}\\
+    \boldsymbol{\Sigma}_k^{(t+1)} &= \frac{1}{N_k}
+    \sum_{i=1}^N \gamma_{ik}\,
+    (\mathbf{x}_i - \boldsymbol{\mu}_k^{(t+1)})
+    (\mathbf{x}_i - \boldsymbol{\mu}_k^{(t+1)})^\top.
+    \label{eq:em-sigma}
+\end{align}
+
+\begin{remark}
+K-means is a degenerate special case of EM for GMMs: setting all
+covariance matrices to $\boldsymbol{\Sigma}_k = \varepsilon I$ and
+forcing hard assignments ($\gamma_{ik} \in \{0,1\}$) recovers the
+K-means update exactly.
+\end{remark}
+
+\subsection{Choosing $K$: BIC and AIC}
+
+For GMMs the log-likelihood is monotone in $K$, so one uses penalised
+criteria:
+\begin{align}
+    \mathrm{AIC}(K) &= -2\,\ell(\hat{\theta}_K) + 2\,p_K,
+    \label{eq:aic}\\
+    \mathrm{BIC}(K) &= -2\,\ell(\hat{\theta}_K) + p_K\,\log N,
+    \label{eq:bic}
+\end{align}
+where $p_K = (K-1) + Kd + K\frac{d(d+1)}{2}$ is the number of free
+parameters.  The BIC is preferred for clustering due to its consistency
+as $N \to \infty$.
+
+\section{Adaptive Simulation Allocation}
+\label{sec:adaptive-allocation}
+
+Let $\hat{\sigma}_k^2$ denote the within-cluster payoff variance
+estimated from a pilot simulation of $N_0$ paths, and $p_k = N_k/N_0$
+the empirical cluster weight.  The \emph{Neyman-optimal} allocation
+assigns to cluster $k$:
+\begin{equation}
+    n_k^* = N \cdot \frac{p_k\,\hat{\sigma}_k}
+    {\sum_{j=1}^K p_j\,\hat{\sigma}_j},
+    \label{eq:neyman-cluster}
+\end{equation}
+yielding the adaptive estimator:
+\begin{equation}
+    \hat{V}_0^{ADAPT} = e^{-rT} \sum_{k=1}^{K} p_k
+    \left(\frac{1}{n_k^*}\sum_{i \in C_k} \Phi(\omega_i)\right),
+    \label{eq:adaptive-estimator}
+\end{equation}
+with variance:
+\begin{equation}
+    \Var\!\left[\hat{V}_0^{ADAPT}\right]
+    = \frac{e^{-2rT}}{N}
+    \left(\sum_{k=1}^{K} p_k\,\hat{\sigma}_k\right)^2.
+    \label{eq:adaptive-variance}
+\end{equation}
+
+\section{Local Control Variates and Variance Reduction}
+\label{sec:local-cv}
+
+\subsection{Local control variates}
+
+Rather than fitting a single global coefficient $c^*$, one fits a
+separate coefficient within each cluster:
+\begin{equation}
+    c_k^* = \frac{\widehat{\Cov}_k[\Phi,\, Y]}
+    {\widehat{\Var}_k[Y]},
+    \label{eq:local-cv-coeff}
+\end{equation}
+yielding the local control variate estimator:
+\begin{equation}
+    \hat{V}_0^{LCV} = e^{-rT} \sum_{k=1}^{K} p_k \cdot
+    \frac{1}{n_k} \sum_{i \in C_k}
+    \bigl[\Phi(\omega_i) - c_k^*\,(Y_i - \mu_Y)\bigr].
+    \label{eq:local-cv-estimator}
+\end{equation}
+
+\subsection{Why clustering amplifies variance reduction}
+
+The \emph{law of total variance} decomposes payoff variance as:
+\begin{equation}
+    \Var[\Phi] = \underbrace{\mathbb{E}_k\bigl[\Var[\Phi \mid C_k]\bigr]}_{\text{within-cluster}}
+    + \underbrace{\Var_k\bigl[\mathbb{E}[\Phi \mid C_k]\bigr]}_{\text{between-cluster}}.
+    \label{eq:total-variance}
+\end{equation}
+
+Clustering attacks both terms simultaneously: stratification eliminates
+the between-cluster component, while local control variates reduce the
+within-cluster component by exploiting higher within-cluster
+correlations.  The residual variance satisfies:
+\[
+    \sum_{k=1}^K p_k\,\sigma_k^2\,(1 - \rho_k^2)
+    \;\leq\; \Var[\Phi]\,(1 - \rho_{\Phi,Y}^2),
+\]
+where $\rho_k = \mathrm{Corr}_k[\Phi, Y]$.
+
+\section{Summary}
+\label{sec:clustering-summary}
+
+The complete pipeline consists of four steps: (1) feature extraction,
+(2) standardisation, (3) clustering via K-means or GMM, and (4) adaptive
+Neyman allocation combined with local control variates.  The variance
+decomposition~\eqref{eq:total-variance} shows why these two mechanisms
+act simultaneously and produce gains substantially greater than either
+technique alone.
+
+% ── Chapter 4 ───────────────────────────────────────────────
+\chapter{Random Forests for Payoff Approximation and Control Variates}
+\label{ch:random-forests}
+
+Chapter~\ref{ch:clustering} showed that grouping simulated paths into
+homogeneous clusters amplifies the effectiveness of control variates.
+The remaining bottleneck is the choice of control $Y$ itself: in the
+classical framework, $Y$ must be chosen by hand.  This chapter proposes
+to \emph{learn} the control variate function directly from simulated
+data using \emph{Random Forests} --- an ensemble method that is robust,
+fast to train, and interpretable.
+
+\section{Decision Trees}
+\label{sec:decision-trees}
+
+\subsection{Formal definition}
+
+\begin{definition}[Regression tree]
+A regression tree with $L$ leaves partitions $\R^d$ into $L$ disjoint
+rectangular regions $R_1, \ldots, R_L$ and approximates the target
+function by:
+\begin{equation}
+    \hat{f}(\mathbf{x}) = \sum_{\ell=1}^{L} c_\ell\,
+    \mathbf{1}\{\mathbf{x} \in R_\ell\},
+    \label{eq:tree}
+\end{equation}
+where $c_\ell = \frac{1}{|R_\ell|}\sum_{i:\,\mathbf{x}_i \in R_\ell}
+\Phi_i$ is the within-leaf mean.
+\end{definition}
+
+The CART algorithm (Breiman et al., 1984) builds the tree by
+recursively choosing the split $(\ell^*, s^*)$ that minimises the total
+within-region residual sum of squares:
+\begin{equation}
+    \mathcal{L}(\ell, s) =
+    \sum_{i:\,\mathbf{x}_i \in R^-} (\Phi_i - \bar{\Phi}^-)^2
+    + \sum_{i:\,\mathbf{x}_i \in R^+} (\Phi_i - \bar{\Phi}^+)^2.
+    \label{eq:cart-criterion}
+\end{equation}
+
+\subsection{Illustrative example}
+
+To make the algorithm concrete, Table~\ref{tab:cart-example} presents a
+pilot simulation of $N_0 = 6$ paths of a European call with $K = 100$,
+described by the terminal value $S_T$ and the realised volatility
+$\hat{\sigma}^2$.
+
+% Table uses booktabs — consistent with the rest of the document
+\begin{table}[H]
+\centering
+\caption{Pilot paths for the CART illustration.  The optimal first
+         split $S_T \leq 100$ perfectly separates zero-payoff paths
+         from positive-payoff paths.}
+\label{tab:cart-example}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{cccr}
+\toprule
+\textbf{Path} $i$ & $S_T$ & $\hat{\sigma}^2$ & \textbf{Payoff} $(S_T - 100)^+$ \\
+\midrule
+1 & 112 & 0.06 & 12 \\
+2 & 95  & 0.04 & 0  \\
+3 & 108 & 0.08 & 8  \\
+4 & 91  & 0.03 & 0  \\
+5 & 103 & 0.05 & 3  \\
+6 & 88  & 0.02 & 0  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Random Forests}
+\label{sec:rf}
+
+\begin{definition}[Random Forest]
+A Random Forest with $B$ trees and $m$ candidate features per split is
+the ensemble:
+\begin{equation}
+    \hat{f}^{RF}(\mathbf{x}) = \frac{1}{B}\sum_{b=1}^{B}
+    \hat{f}_b^{m}(\mathbf{x}),
+    \label{eq:rf}
+\end{equation}
+where $\hat{f}_b^m$ is a fully grown decision tree trained on the $b$-th
+bootstrap sample, with $m$ randomly selected features considered at each
+split.  The standard choice is $m = \lfloor d/3 \rfloor$ for regression.
+\end{definition}
+
+Random Forests enjoy three properties of particular relevance here.
+\emph{Consistency}: the predictor $\hat{f}^{RF}(\mathbf{x})$ converges
+to $\mathbb{E}[\Phi \mid \mathbf{x}]$ as $N, B \to \infty$ (Scornet et
+al., 2015).  \emph{Out-of-bag error estimation}: roughly $37\%$ of
+observations are unused per tree, providing a free validation estimate:
+\begin{equation}
+    \mathrm{OOB} = \frac{1}{N}\sum_{i=1}^{N}
+    \left(\Phi_i - \hat{f}^{OOB}(\mathbf{x}_i)\right)^2.
+    \label{eq:oob}
+\end{equation}
+\emph{Feature importance}: the mean decrease in impurity (MDI) ranks
+features by their total contribution to splits across all trees.
+
+\section{Random Forest Control Variates}
+\label{sec:rf-cv}
+
+The two-phase procedure runs as follows.  In the \emph{training phase},
+one fits a Random Forest on a pilot sample $\{(\mathbf{x}_i,
+\Phi_i)\}_{i=1}^{N_0}$ and estimates the control mean:
+\begin{equation}
+    \hat{\mu}_Y = \frac{1}{N_0}\sum_{i=1}^{N_0}
+    \hat{f}^{OOB}(\mathbf{x}_i).
+    \label{eq:rf-control-mean}
+\end{equation}
+In the \emph{pricing phase}, one evaluates the fitted forest on $N$
+fresh paths:
+\begin{equation}
+    \hat{V}_0^{RF} = \frac{e^{-rT}}{N}\sum_{i=1}^{N}
+    \left[\Phi(\omega_i) - c^*\,
+    \bigl(\hat{f}^{RF}(\mathbf{x}_i) - \hat{\mu}_Y\bigr)\right],
+    \label{eq:rf-cv-estimator}
+\end{equation}
+with variance reduction factor $(1 - \rho^2_{\Phi,\hat{f}^{RF}})$
+approaching zero as the forest approximation improves.
+
+The local variant combines clustering and RF control variates:
+\begin{equation}
+    \hat{V}_0^{LRF} = e^{-rT}\sum_{k=1}^{K} p_k \cdot
+    \frac{1}{n_k}\sum_{i \in C_k}
+    \left[\Phi(\omega_i) - c_k^*\,
+    \bigl(\hat{f}_k^{RF}(\mathbf{x}_i) - \hat{\mu}_{Y,k}\bigr)\right].
+    \label{eq:rf-local-estimator}
+\end{equation}
+
+\section{Comparison with Alternative Approaches}
+\label{sec:rf-comparison}
+
+Table~\ref{tab:method-comparison} summarises the three control variate
+construction methods along the dimensions most relevant to a production
+Monte Carlo engine.
+
+\begin{table}[H]
+\centering
+\caption{Comparison of control variate construction methods.  Variance
+         reduction ratings are qualitative assessments based on empirical
+         results reported in Parts~II and~III.}
+\label{tab:method-comparison}
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Method} & \textbf{Flexibility}
+                & \textbf{Training cost}
+                & \textbf{Interpretability}
+                & \textbf{Variance reduction} \\
+\midrule
+Regression MC    & Low    & Very low  & High   & Low--Medium \\
+Random Forest    & Medium & Low       & Medium & Medium--High \\
+Neural Network   & High   & High      & Low    & High \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Summary}
+\label{sec:rf-summary}
+
+This chapter developed Random Forests as a principled, data-driven method
+for constructing control variates in Monte Carlo pricing.  The key
+contributions are: (1) regression trees as adaptive stratification,
+(2) ensemble averaging for variance reduction, (3) RF control variates
+with convergence guarantee, (4) within-leaf variance for detecting
+high-variance regions, and (5) local RF control variates that combine
+clustering with data-driven control construction.
+
+% ── Chapter 5 ───────────────────────────────────────────────
+\chapter{Neural Networks for Variance Reduction}
+\label{ch:neural-networks}
+
+Chapter~\ref{ch:random-forests} showed that Random Forests can
+approximate $\mathbb{E}^{\Q}[\Phi \mid \mathbf{x}]$ and use this
+approximation as a control variate.  Their expressive power is
+fundamentally limited, however, by the piecewise-constant nature of tree
+predictions.  Neural networks offer a fundamentally different function
+approximation paradigm: they compose simple non-linear transformations
+in sequence, producing smooth, flexible approximations that can represent
+virtually any continuous function --- a property known as \emph{universal
+approximation}.
+
+\section{From a Single Neuron to a Deep Network}
+\label{sec:neuron}
+
+\subsection{The artificial neuron}
+
+The basic computational unit takes a vector of inputs
+$\mathbf{x} \in \R^d$, computes a weighted sum, adds a bias, and passes
+the result through a non-linear \emph{activation function}
+$\sigma : \R \to \R$:
+\begin{equation}
+    z = \sigma\!\left(\mathbf{w}^\top \mathbf{x} + b\right),
+    \label{eq:neuron}
+\end{equation}
+where $\mathbf{w} \in \R^d$ and $b \in \R$ are the learnable parameters.
+Standard choices include: \emph{Sigmoid}
+$\sigma(z) = (1 + e^{-z})^{-1}$;
+\emph{Hyperbolic tangent} $\sigma(z) = \tanh(z)$;
+\emph{ReLU} $\sigma(z) = \max(0,z)$, which is the most widely used in
+modern deep networks.
+
+\subsection{The feedforward network}
+
+A \emph{feedforward neural network} (MLP) arranges neurons in layers.
+The output of the $\ell$-th hidden layer is:
+\begin{equation}
+    \mathbf{h}^{(\ell)} = \sigma\!\left(W^{(\ell)}\,\mathbf{h}^{(\ell-1)}
+    + \mathbf{b}^{(\ell)}\right), \qquad \ell = 1, \ldots, L-1,
+    \label{eq:hidden-layer}
+\end{equation}
+with final output $g_\theta(\mathbf{x}) = W^{(L)}\,\mathbf{h}^{(L-1)}
++ \mathbf{b}^{(L)}$, where
+$\theta = \{W^{(\ell)}, \mathbf{b}^{(\ell)}\}_{\ell=1}^{L}$ denotes
+the full set of trainable parameters.
+
+\section{Universal Approximation}
+\label{sec:ua}
+
+\begin{theorem}[Universal Approximation, Cybenko 1989]
+Let $\sigma : \R \to \R$ be a continuous, bounded, non-constant
+function.  For any continuous function $f : [0,1]^d \to \R$ and any
+$\varepsilon > 0$, there exists a feedforward network $g_\theta$ with
+one hidden layer such that:
+\begin{equation}
+    \sup_{\mathbf{x} \in [0,1]^d}
+    \left|f(\mathbf{x}) - g_\theta(\mathbf{x})\right| < \varepsilon.
+    \label{eq:uat}
+\end{equation}
+\end{theorem}
+
+The theorem guarantees the \emph{existence} of such a network but says
+nothing about whether training will \emph{find} it --- a distinction
+with important practical implications (see Section~\ref{sec:nn-limits}).
+
+\section{Training Neural Networks}
+\label{sec:training}
+
+\subsection{Loss functions}
+
+For regression, the standard choice is the \emph{mean squared error}:
+\begin{equation}
+    \mathcal{L}_{MSE}(\theta) = \frac{1}{N_0}\sum_{i=1}^{N_0}
+    \left(\Phi_i - g_\theta(\mathbf{x}_i)\right)^2.
+    \label{eq:mse-loss}
+\end{equation}
+In Section~\ref{sec:nn-cv}, we use instead the \emph{variance loss}:
+\begin{equation}
+    \mathcal{L}_{VAR}(\theta, c) = \frac{1}{N_0}\sum_{i=1}^{N_0}
+    \left(\Phi_i - c\,g_\theta(\mathbf{x}_i)\right)^2,
+    \label{eq:var-loss}
+\end{equation}
+minimised jointly over $\theta$ and the scalar $c$.
+
+\subsection{Backpropagation}
+
+Define the error signal $\boldsymbol{\delta}^{(\ell)} =
+\partial \mathcal{L} / \partial \mathbf{z}^{(\ell)}$.  The
+backpropagation recursion is:
+\begin{align}
+    \boldsymbol{\delta}^{(L)} &= \frac{\partial \mathcal{L}}
+    {\partial g_\theta}, \label{eq:bp-output}\\
+    \boldsymbol{\delta}^{(\ell)} &= \left(W^{(\ell+1)}\right)^\top
+    \boldsymbol{\delta}^{(\ell+1)} \odot \sigma'(\mathbf{z}^{(\ell)}),
+    \label{eq:bp-hidden}\\
+    \frac{\partial \mathcal{L}}{\partial W^{(\ell)}} &=
+    \boldsymbol{\delta}^{(\ell)} \left(\mathbf{h}^{(\ell-1)}\right)^\top.
+    \label{eq:bp-grad}
+\end{align}
+
+\subsection{Adam optimiser}
+
+The Adam optimiser (Kingma \& Ba, 2015) adapts the learning rate per
+parameter:
+\begin{align}
+    m_t &= \beta_1\,m_{t-1} + (1 - \beta_1)\,\nabla_\theta\mathcal{L}_t,
+    \label{eq:adam-m}\\
+    v_t &= \beta_2\,v_{t-1} + (1 - \beta_2)\,
+    (\nabla_\theta\mathcal{L}_t)^2,
+    \label{eq:adam-v}\\
+    \theta^{(t+1)} &= \theta^{(t)} - \frac{\eta}{\sqrt{\hat{v}_t}
+    + \varepsilon}\,\hat{m}_t,
+    \label{eq:adam-update}
+\end{align}
+with default values $\beta_1 = 0.9$, $\beta_2 = 0.999$,
+$\varepsilon = 10^{-8}$.
+
+\section{Neural Network Control Variates}
+\label{sec:nn-cv}
+
+\subsection{The variance minimisation objective}
+
+The goal is to find $g_\theta$ minimising the residual variance:
+\begin{equation}
+    \min_{\theta,\, c}\;\Var^{\Q}\!\left[\Phi(\omega)
+    - c\,g_\theta(\mathbf{x}(\omega))\right],
+    \label{eq:nn-cv-objective}
+\end{equation}
+which is equivalent to maximising the correlation
+$\rho_{\Phi, g_\theta}$.  The optimal coefficient at fixed $\theta$ is:
+\begin{equation}
+    c^* = \frac{\sum_{i=1}^{N_0} \Phi_i\,g_\theta(\mathbf{x}_i)
+    - N_0\,\bar{\Phi}\,\overline{g_\theta}}
+    {\sum_{i=1}^{N_0} g_\theta(\mathbf{x}_i)^2
+    - N_0\,\overline{g_\theta}^2}.
+    \label{eq:nn-c-star}
+\end{equation}
+
+\subsection{Architecture}
+
+Table~\ref{tab:nn-architecture} summarises the retained architecture
+for European options under Heston with feature vector
+$\tilde{\mathbf{x}} = (S_T, V_T, \bar{V}) \in \R^3$.
+
+\begin{table}[H]
+\centering
+\caption{Neural network architecture for the control variate
+         $g_\theta$.  Input: standardised feature vector
+         $\tilde{\mathbf{x}} \in \R^d$ with $d = 3$.}
+\label{tab:nn-architecture}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Layer} & \textbf{Input} & \textbf{Output}
+               & \textbf{Activation} & \textbf{Parameters} \\
+\midrule
+Input    & $d = 3$ & 3  & ---  & 0 \\
+Hidden 1 & 3       & 64 & ReLU & $3 \times 64 + 64 = 256$ \\
+Hidden 2 & 64      & 64 & ReLU & $64 \times 64 + 64 = 4{,}160$ \\
+Hidden 3 & 64      & 64 & ReLU & $64 \times 64 + 64 = 4{,}160$ \\
+Output   & 64      & 1  & None & $64 \times 1 + 1 = 65$ \\
+\midrule
+\textbf{Total} & & & & $\mathbf{8{,}641}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{The training and pricing pipeline}
+
+\begin{enumerate}
+    \item \textbf{Pilot simulation}: simulate $N_0$ paths, compute
+          features $\mathbf{x}_i$ and payoffs $\Phi_i$.
+    \item \textbf{Standardisation}: standardise features to zero mean
+          and unit variance.
+    \item \textbf{Training}: minimise \eqref{eq:var-loss} via Adam,
+          mini-batches of size $256$, $200$ epochs, $L^2$
+          regularisation $\lambda = 10^{-4}$, dropout $p_{drop} = 0.1$.
+    \item \textbf{Validation}: monitor out-of-sample variance reduction
+          on a held-out subset.
+    \item \textbf{Pricing}: simulate $N$ fresh paths and compute:
+\begin{equation}
+    \hat{V}_0^{NN} = \frac{e^{-rT}}{N}\sum_{i=1}^{N}
+    \left[\Phi(\omega_i) - c^*\,
+    \bigl(g_\theta(\mathbf{x}_i) - \hat{\mu}_{g}\bigr)\right].
+    \label{eq:nn-cv-estimator}
+\end{equation}
+\end{enumerate}
+
+\section{Application to High-Dimensional Finance}
+\label{sec:nn-finance}
+
+For a $d$-dimensional basket option with payoff
+$(\bar{S}_T - K)^+ = \bigl(\frac{1}{d}\sum_{j=1}^d S_T^{(j)} - K\bigr)^+$
+under multi-dimensional Black--Scholes:
+\begin{equation}
+    \dd S_t^{(j)} = r\,S_t^{(j)}\,\dd t
+    + \sigma_j\,S_t^{(j)}\,\dd W_t^{(j)}, \qquad j = 1, \ldots, d,
+    \label{eq:multi-bs}
+\end{equation}
+with $\langle W^{(j)}, W^{(k)}\rangle_t = \rho_{jk}\,t$, a three-layer
+network of width $128$ trained on $N_0 = 10^5$ paths typically achieves
+$\rho > 0.95$ for $d = 5$ to $20$, reducing variance by a factor
+exceeding $20\times$.
+
+\section{Practical Limitations}
+\label{sec:nn-limits}
+
+Neural network control variates face five practical challenges that
+practitioners must weigh carefully.  \textbf{Overfitting} can be
+detected via held-out validation and mitigated by $L^2$ regularisation
+and dropout.  \textbf{Training instability} arises for discontinuous
+payoffs (digitals, barriers), requiring smooth indicator approximations.
+\textbf{Computational cost} is on the order of $10$--$60$ seconds on a
+modern CPU for the architectures above, reduced by $10$--$100\times$
+with GPU acceleration.  \textbf{Interpretability} is limited relative
+to Random Forests; SHAP values (Lundberg \& Lee, 2017) provide post-hoc
+attribution at additional cost.  \textbf{No-arbitrage constraints} can
+be enforced via a Lagrange multiplier on the martingale condition
+$\mathbb{E}^{\Q}[g_\theta(\mathbf{x})] = 0$.
+
+\section{Summary}
+\label{sec:nn-summary}
+
+This chapter developed neural networks as the most powerful and flexible
+control variate construction method in our hierarchy, deriving the
+variance minimisation objective, the backpropagation training procedure,
+and the full pricing pipeline.  Together, Chapters~\ref{ch:clustering}
+to~\ref{ch:neural-networks} constitute the complete machine learning
+pipeline:
+\begin{enumerate}
+    \item Feature extraction and normalisation
+    \item Path clustering via K-means or GMM
+    \item Adaptive Neyman allocation
+    \item Random Forest local control variates
+    \item Neural network global control variates
+\end{enumerate}
+Part~III implements and benchmarks all five steps against the classical
+methods of Part~I across a range of option types and underlying models.
+
+% ============================================================
+%  APPENDIX
+%  The \appendix command switches chapter labels to A, B, C ...
+%  \appendixpage inserts a divider page ("Appendices").
+%  \input pulls the standalone appendix.tex without a page break.
+% ============================================================
+\appendix
+\appendixpage
+\addappheadtotoc
+
+\input{appendix}
+
+% ============================================================
+%  BIBLIOGRAPHY
+%  Placed after the appendix so the TOC sequence reads:
+%  Chapters → Appendix → Bibliography.
+%  Using the self-contained thebibliography environment.
+% ============================================================
+\cleardoublepage
+\addcontentsline{toc}{chapter}{Bibliography}
+
+\begin{thebibliography}{99}
+
+\bibitem{Andersen2008}
+Andersen, L.\ (2008).
+\textit{Simple and efficient simulation of the Heston stochastic
+  volatility model}.
+Journal of Computational Finance, 11(3), 1--42.
+
+\bibitem{ArthurVassilvitskii2007}
+Arthur, D.\ \& Vassilvitskii, S.\ (2007).
+\textit{k-means++: The advantages of careful seeding}.
+In Proceedings of the 18th Annual ACM-SIAM Symposium on Discrete
+Algorithms (SODA), 1027--1035.
+
+\bibitem{BlackScholes1973}
+Black, F.\ \& Scholes, M.\ (1973).
+\textit{The pricing of options and corporate liabilities}.
+Journal of Political Economy, 81(3), 637--654.
+
+\bibitem{BreimanEtAl1984}
+Breiman, L., Friedman, J.\ H., Olshen, R.\ A., \& Stone, C.\ J.\
+(1984). \textit{Classification and Regression Trees}.
+Wadsworth, Belmont, CA.
+
+\bibitem{Breiman1996}
+Breiman, L.\ (1996).
+\textit{Bagging predictors}.
+Machine Learning, 24(2), 123--140.
+
+\bibitem{Breiman2001}
+Breiman, L.\ (2001).
+\textit{Random forests}.
+Machine Learning, 45(1), 5--32.
+
+\bibitem{Cybenko1989}
+Cybenko, G.\ (1989).
+\textit{Approximation by superpositions of a sigmoidal function}.
+Mathematics of Control, Signals, and Systems, 2(4), 303--314.
+
+\bibitem{DelbaenSchachermayer1994}
+Delbaen, F.\ \& Schachermayer, W.\ (1994).
+\textit{A general version of the fundamental theorem of asset pricing}.
+Mathematische Annalen, 300(1), 463--520.
+
+\bibitem{Glasserman2004}
+Glasserman, P.\ (2004).
+\textit{Monte Carlo Methods in Financial Engineering}.
+Springer, New York.
+
+\bibitem{HarrisonKreps1979}
+Harrison, J.\ M.\ \& Kreps, D.\ M.\ (1979).
+\textit{Martingales and arbitrage in multiperiod securities markets}.
+Journal of Economic Theory, 20(3), 381--408.
+
+\bibitem{Heston1993}
+Heston, S.\ L.\ (1993).
+\textit{A closed-form solution for options with stochastic volatility
+  with applications to bond and currency options}.
+Review of Financial Studies, 6(2), 327--343.
+
+\bibitem{HeEtAl2015}
+He, K., Zhang, X., Ren, S., \& Sun, J.\ (2015).
+\textit{Delving deep into rectifiers: Surpassing human-level performance
+  on ImageNet classification}.
+In Proceedings of ICCV, 1026--1034.
+
+\bibitem{Hornik1991}
+Hornik, K.\ (1991).
+\textit{Approximation capabilities of multilayer feedforward networks}.
+Neural Networks, 4(2), 251--257.
+
+\bibitem{KemnaVorst1990}
+Kemna, A.\ G.\ Z.\ \& Vorst, A.\ C.\ F.\ (1990).
+\textit{A pricing method for options based on average asset values}.
+Journal of Banking and Finance, 14(1), 113--129.
+
+\bibitem{KingmaBa2015}
+Kingma, D.\ P.\ \& Ba, J.\ (2015).
+\textit{Adam: A method for stochastic optimization}.
+In International Conference on Learning Representations (ICLR).
+
+\bibitem{LongstaffSchwartz2001}
+Longstaff, F.\ A.\ \& Schwartz, E.\ S.\ (2001).
+\textit{Valuing American options by simulation: A simple least-squares
+  approach}.
+Review of Financial Studies, 14(1), 113--147.
+
+\bibitem{LundbergLee2017}
+Lundberg, S.\ M.\ \& Lee, S.-I.\ (2017).
+\textit{A unified approach to interpreting model predictions}.
+Advances in Neural Information Processing Systems (NeurIPS), 30.
+
+\bibitem{Merton1973}
+Merton, R.\ C.\ (1973).
+\textit{Theory of rational option pricing}.
+Bell Journal of Economics and Management Science, 4(1), 141--183.
+
+\bibitem{RumelhartEtAl1986}
+Rumelhart, D.\ E., Hinton, G.\ E., \& Williams, R.\ J.\ (1986).
+\textit{Learning representations by back-propagating errors}.
+Nature, 323(6088), 533--536.
+
+\bibitem{ScornetEtAl2015}
+Scornet, E., Biau, G., \& Vert, J.-P.\ (2015).
+\textit{Consistency of random forests}.
+Annals of Statistics, 43(4), 1716--1741.
+
+\bibitem{SrivastavaEtAl2014}
+Srivastava, N., Hinton, G., Krizhevsky, A., Sutskever, I., \&
+Salakhutdinov, R.\ (2014).
+\textit{Dropout: A simple way to prevent neural networks from
+  overfitting}.
+Journal of Machine Learning Research, 15(56), 1929--1958.
+
+\end{thebibliography}
+
+\end{document}
