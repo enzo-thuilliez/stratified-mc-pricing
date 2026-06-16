@@ -72,7 +72,7 @@ plot_figure5_rmse_european(df)
 
 ## Results
 
-The benchmark produces 8 publication-ready figures and a `benchmark_results.csv`:
+The benchmark produces 8 figures and a `benchmark_results.csv`:
 
 | Figure | Content |
 |---|---|
@@ -91,3 +91,24 @@ The benchmark produces 8 publication-ready figures and a `benchmark_results.csv`
 - Andersen, L. (2008). *Simple and efficient simulation of the Heston stochastic volatility model.*
 - Lord, R. et al. (2010). *A comparison of biased simulation schemes for stochastic volatility models.*
 - Belomestny, D. et al. (2017). *Variance reduction for Markov chains with application to MCMC.*
+
+## Reproducing the segmented empirical study (Part 6)
+
+The `run_surface.py` script orchestrates the segmented surface study (configuration grid) across two profiles:
+
+**Quick profile** (sanity-check the pipeline mechanics before a full run):
+```bash
+python run_surface.py --quick
+```
+
+**Full profile** (heavy run, intended to be launched overnight):
+```bash
+python run_surface.py --full
+```
+
+Expected outputs:
+- `figures/benchmark_surface_results.csv` — raw results from the benchmark grid
+- `.tex` tables — tables formatted for LaTeX integration in the thesis
+- `figures/benchmark_interpretation_summary.md` — interpretive summary of the results
+
+Random seeds are fixed in the script so results are reproducible across runs.

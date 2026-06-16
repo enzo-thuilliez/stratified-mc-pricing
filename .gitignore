@@ -17,6 +17,7 @@ __pycache__/
 dist/
 build/
 *.egg-info/
+.ipynb_checkpoints/
 
 # ── Environments ───────────────────────────────────────────────────────────────
 .env

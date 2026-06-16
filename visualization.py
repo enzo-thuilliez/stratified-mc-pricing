@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import matplotlib.patches as mpatches
+from matplotlib.colors import LogNorm
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
@@ -29,6 +30,365 @@ def _method_label(method: str) -> str:
         "nn_cv":             "NN control variate",
     }
     return labels.get(method, method)
+
+
+# ---------------------------------------------------------------------------
+# Surface analysis (Figures 9-14): axis orderings and display labels shared
+# by the maturity x moneyness diagnostic figures below.
+# ---------------------------------------------------------------------------
+
+_MATURITY_ORDER  = ["short", "medium", "long"]
+_MONEYNESS_ORDER = ["ITM", "ATM", "OTM"]
+_METHOD_ORDER    = ["plain_mc", "antithetic", "stratified_kmeans",
+                    "stratified_gmm", "rf_cv", "nn_cv"]
+_MODEL_ORDER     = ["gbm", "heston_qe"]
+_PAYOFF_ORDER    = ["european_call", "asian_call", "digital_call"]
+
+_MODEL_LABEL = {"gbm": "GBM", "heston_qe": "Heston-QE"}
+_PAYOFF_LABEL = {
+    "european_call": "European call (smooth)",
+    "asian_call":     "Asian call (path-dependent)",
+    "digital_call":   "Digital call (discontinuous)",
+}
+
+
+def _pivot_surface(sub_df: pd.DataFrame, value_col: str) -> np.ndarray:
+    """
+    Pivot a (already model/method-filtered) slice into a moneyness x maturity
+    matrix, averaging over any remaining dimension (e.g. payoff). Missing
+    combinations are left as NaN rather than fabricated.
+    """
+    grouped = sub_df.groupby(["moneyness_label", "maturity_label"])[value_col].mean()
+    mat = np.full((len(_MONEYNESS_ORDER), len(_MATURITY_ORDER)), np.nan)
+    for i, mny in enumerate(_MONEYNESS_ORDER):
+        for j, mat_lbl in enumerate(_MATURITY_ORDER):
+            key = (mny, mat_lbl)
+            if key in grouped.index and np.isfinite(grouped.loc[key]):
+                mat[i, j] = grouped.loc[key]
+    return mat
+
+
+def _draw_surface_heatmap(ax, mat: np.ndarray, norm: LogNorm, cmap, fmt) -> "plt.cm.ScalarMappable":
+    """Draw one moneyness x maturity heatmap cell with annotations; NaNs are
+    shown as grey 'n/a' cells rather than interpolated or fabricated."""
+    ax.set_facecolor("0.90")
+    masked = np.ma.masked_invalid(mat)
+    im = ax.imshow(masked, cmap=cmap, norm=norm, aspect="auto")
+    ax.set_xticks(range(len(_MATURITY_ORDER)))
+    ax.set_yticks(range(len(_MONEYNESS_ORDER)))
+    ax.set_xticks(np.arange(-0.5, len(_MATURITY_ORDER), 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, len(_MONEYNESS_ORDER), 1), minor=True)
+    ax.grid(which="minor", color="0.97", linewidth=0.8)
+    ax.tick_params(which="minor", length=0)
+    for i in range(mat.shape[0]):
+        for j in range(mat.shape[1]):
+            val = mat[i, j]
+            if np.isnan(val):
+                ax.text(j, i, "n/a", ha="center", va="center",
+                        fontsize=6.5, color="0.55", style="italic")
+            else:
+                txt_color = "white" if norm(val) > 0.55 else "black"
+                ax.text(j, i, fmt(val), ha="center", va="center",
+                        fontsize=6.5, color=txt_color)
+    return im
+
+
+def plot_figure9_heatmap_varratio(df: pd.DataFrame, outpath: str = None) -> None:
+    """
+    Figure 9: variance_reduction_ratio heatmaps across the maturity x
+    moneyness surface, one panel per (model, method) pair. Shows WHERE on
+    the surface each variance-reduction technique helps most.
+    """
+    if outpath is None:
+        outpath = f"{OUT_DIR}/figure_9_heatmap_varratio.png"
+
+    methods = [m for m in _METHOD_ORDER if m in df["method"].unique()]
+    models  = [m for m in _MODEL_ORDER if m in df["model"].unique()]
+    if not methods or not models:
+        print("  [Fig 9] No data found. Skipping.")
+        return
+
+    value_col = "variance_reduction_ratio"
+    vals = df[value_col].replace([np.inf, -np.inf], np.nan).dropna()
+    vals = vals[vals > 0]
+    if vals.empty:
+        print("  [Fig 9] No valid variance_reduction_ratio values. Skipping.")
+        return
+    norm = LogNorm(vmin=max(vals.min(), 1e-2), vmax=vals.max())
+    cmap = plt.get_cmap("Greys")
+    fmt = lambda v: (f"{v:.0f}" if v >= 10 else f"{v:.2f}")
+
+    n_rows, n_cols = len(models), len(methods)
+    fig, axes = plt.subplots(n_rows, n_cols,
+                              figsize=(2.5 * n_cols, 2.6 * n_rows + 0.6),
+                              squeeze=False)
+
+    im_last = None
+    for r, model in enumerate(models):
+        for c, method in enumerate(methods):
+            ax = axes[r, c]
+            sub = df[(df["model"] == model) & (df["method"] == method)]
+            mat = _pivot_surface(sub, value_col)
+            im_last = _draw_surface_heatmap(ax, mat, norm, cmap, fmt)
+
+            ax.set_title(_method_label(method), fontsize=8) if r == 0 else None
+            if c == 0:
+                ax.set_yticklabels(_MONEYNESS_ORDER, fontsize=7)
+                ax.set_ylabel(f"{_MODEL_LABEL[model]}\nMoneyness", fontsize=7.5)
+            else:
+                ax.set_yticklabels([])
+            if r == n_rows - 1:
+                ax.set_xticklabels(_MATURITY_ORDER, fontsize=7)
+                ax.set_xlabel("Maturity", fontsize=7.5)
+            else:
+                ax.set_xticklabels([])
+
+    plt.tight_layout(rect=[0, 0, 0.93, 0.93])
+    if im_last is not None:
+        cbar_ax = fig.add_axes([0.945, 0.15, 0.015, 0.68])
+        cbar = fig.colorbar(im_last, cax=cbar_ax)
+        cbar.set_label("Variance reduction ratio\n(log scale, vs plain MC)", fontsize=7.5)
+    fig.suptitle(
+        "Figure 9 — Variance reduction ratio across the maturity x moneyness "
+        "surface, by method and model", fontsize=9, y=0.985
+    )
+    plt.savefig(outpath)
+    plt.close()
+    print(f"Saved: {outpath}")
+
+
+def plot_figure10_heatmap_rmse(df: pd.DataFrame, outpath: str = None) -> None:
+    """
+    Figure 10: RMSE heatmaps across the maturity x moneyness surface, one
+    panel per (model, method) pair.
+    """
+    if outpath is None:
+        outpath = f"{OUT_DIR}/figure_10_heatmap_rmse.png"
+
+    methods = [m for m in _METHOD_ORDER if m in df["method"].unique()]
+    models  = [m for m in _MODEL_ORDER if m in df["model"].unique()]
+    if not methods or not models:
+        print("  [Fig 10] No data found. Skipping.")
+        return
+
+    value_col = "rmse"
+    vals = df[value_col].replace([np.inf, -np.inf], np.nan).dropna()
+    vals = vals[vals > 0]
+    if vals.empty:
+        print("  [Fig 10] No valid rmse values. Skipping.")
+        return
+    norm = LogNorm(vmin=max(vals.min(), 1e-6), vmax=vals.max())
+    cmap = plt.get_cmap("Greys_r")
+    fmt = lambda v: (f"{v:.1e}" if v < 1e-3 else f"{v:.3f}")
+
+    n_rows, n_cols = len(models), len(methods)
+    fig, axes = plt.subplots(n_rows, n_cols,
+                              figsize=(2.5 * n_cols, 2.6 * n_rows + 0.6),
+                              squeeze=False)
+
+    im_last = None
+    for r, model in enumerate(models):
+        for c, method in enumerate(methods):
+            ax = axes[r, c]
+            sub = df[(df["model"] == model) & (df["method"] == method)]
+            mat = _pivot_surface(sub, value_col)
+            im_last = _draw_surface_heatmap(ax, mat, norm, cmap, fmt)
+
+            ax.set_title(_method_label(method), fontsize=8) if r == 0 else None
+            if c == 0:
+                ax.set_yticklabels(_MONEYNESS_ORDER, fontsize=7)
+                ax.set_ylabel(f"{_MODEL_LABEL[model]}\nMoneyness", fontsize=7.5)
+            else:
+                ax.set_yticklabels([])
+            if r == n_rows - 1:
+                ax.set_xticklabels(_MATURITY_ORDER, fontsize=7)
+                ax.set_xlabel("Maturity", fontsize=7.5)
+            else:
+                ax.set_xticklabels([])
+
+    plt.tight_layout(rect=[0, 0, 0.93, 0.93])
+    if im_last is not None:
+        cbar_ax = fig.add_axes([0.945, 0.15, 0.015, 0.68])
+        cbar = fig.colorbar(im_last, cax=cbar_ax)
+        cbar.set_label("RMSE (log scale)", fontsize=7.5)
+    fig.suptitle(
+        "Figure 10 — RMSE across the maturity x moneyness surface, "
+        "by method and model", fontsize=9, y=0.985
+    )
+    plt.savefig(outpath)
+    plt.close()
+    print(f"Saved: {outpath}")
+
+
+def plot_figure11_runtime(df: pd.DataFrame, outpath: str = None) -> None:
+    """Figure 11: mean runtime per replication, by method, split GBM vs Heston-QE."""
+    if outpath is None:
+        outpath = f"{OUT_DIR}/figure_11_runtime.png"
+
+    methods = [m for m in _METHOD_ORDER if m in df["method"].unique()]
+    models  = [m for m in _MODEL_ORDER if m in df["model"].unique()]
+    if not methods or not models:
+        print("  [Fig 11] No data found. Skipping.")
+        return
+
+    agg = df.groupby(["model", "method"])["runtime_seconds"].mean()
+    x = np.arange(len(methods))
+    width = 0.8 / max(len(models), 1)
+    shades = ["white", "0.55", "0.85"]
+
+    fig, ax = plt.subplots(figsize=(10, 5.5))
+    for i, model in enumerate(models):
+        vals = [agg.get((model, m), np.nan) for m in methods]
+        offset = (i - (len(models) - 1) / 2) * width
+        ax.bar(x + offset, vals, width, color=shades[i % len(shades)],
+               edgecolor="0.0", lw=0.9, label=_MODEL_LABEL[model])
+
+    ax.set_xticks(x)
+    ax.set_xticklabels([_method_label(m) for m in methods], rotation=20,
+                        ha="right", fontsize=8.5)
+    ax.set_ylabel("Mean runtime per replication (seconds)", labelpad=5)
+    ax.set_title(
+        "Figure 11 — Mean runtime per method (averaged across the "
+        "maturity x moneyness x payoff grid)", fontsize=9, pad=10
+    )
+    ax.legend(fontsize=8.5)
+    plt.tight_layout()
+    plt.savefig(outpath)
+    plt.close()
+    print(f"Saved: {outpath}")
+
+
+def plot_figure12_rmse_vs_runtime(df: pd.DataFrame, outpath: str = None) -> None:
+    """
+    Figure 12: per-config RMSE vs runtime scatter (log-log), coloured/marked
+    by method, with a simple lower-left Pareto frontier overlaid.
+    """
+    if outpath is None:
+        outpath = f"{OUT_DIR}/figure_12_rmse_vs_runtime.png"
+
+    sub = df.replace([np.inf, -np.inf], np.nan).dropna(subset=["rmse", "runtime_seconds"])
+    sub = sub[(sub["rmse"] > 0) & (sub["runtime_seconds"] > 0)]
+    if sub.empty:
+        print("  [Fig 12] No valid data. Skipping.")
+        return
+    methods = [m for m in _METHOD_ORDER if m in sub["method"].unique()]
+
+    fig, ax = plt.subplots(figsize=(8.5, 6.2))
+    for i, method in enumerate(methods):
+        m = sub[sub["method"] == method]
+        ax.scatter(m["runtime_seconds"], m["rmse"],
+                   c=GRAY_SHADES[i % len(GRAY_SHADES)],
+                   marker=CLUSTER_MARKERS[i % len(CLUSTER_MARKERS)],
+                   s=32, edgecolors="0.0", linewidths=0.4, alpha=0.85,
+                   label=_method_label(method), zorder=3)
+
+    pts = sub[["runtime_seconds", "rmse"]].to_numpy()
+    order = np.argsort(pts[:, 0])
+    pts = pts[order]
+    pareto, best = [], np.inf
+    for rt, rm in pts:
+        if rm < best:
+            pareto.append((rt, rm))
+            best = rm
+    pareto = np.array(pareto)
+    ax.plot(pareto[:, 0], pareto[:, 1], color="0.0", lw=1.3, ls="--",
+            zorder=4, label="Pareto frontier (min RMSE per runtime)")
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel("Runtime per replication (s, log scale)", labelpad=5)
+    ax.set_ylabel("RMSE (log scale)", labelpad=5)
+    ax.set_title(
+        "Figure 12 — Accuracy / cost trade-off: RMSE vs runtime "
+        "(one point per surface configuration)", fontsize=9, pad=10
+    )
+    ax.legend(fontsize=7.5, ncol=2, loc="best")
+    plt.tight_layout()
+    plt.savefig(outpath)
+    plt.close()
+    print(f"Saved: {outpath}")
+
+
+def plot_figure13_model_comparison(df: pd.DataFrame, outpath: str = None) -> None:
+    """Figure 13: mean variance_reduction_ratio per method, GBM vs Heston-QE panels."""
+    if outpath is None:
+        outpath = f"{OUT_DIR}/figure_13_model_comparison.png"
+
+    methods = [m for m in _METHOD_ORDER if m in df["method"].unique()]
+    models  = [m for m in _MODEL_ORDER if m in df["model"].unique()]
+    if not methods or not models:
+        print("  [Fig 13] No data found. Skipping.")
+        return
+
+    agg = df.groupby(["model", "method"])["variance_reduction_ratio"].mean()
+
+    fig, axes = plt.subplots(1, len(models), figsize=(5.5 * len(models), 5), sharey=True)
+    if len(models) == 1:
+        axes = [axes]
+    for ax, model in zip(axes, models):
+        vals = [agg.get((model, m), np.nan) for m in methods]
+        ax.bar(range(len(methods)), vals, color="0.55", edgecolor="0.0", lw=0.9)
+        ax.set_xticks(range(len(methods)))
+        ax.set_xticklabels([_method_label(m) for m in methods], rotation=25,
+                            ha="right", fontsize=8)
+        ax.axhline(1.0, color="0.3", ls="--", lw=0.9, label="Plain MC baseline")
+        ax.set_yscale("log")
+        ax.set_title(_MODEL_LABEL[model], fontsize=9)
+        ax.legend(fontsize=7.5)
+    axes[0].set_ylabel("Mean variance reduction ratio (log scale)", labelpad=5)
+
+    plt.tight_layout(rect=[0, 0, 1, 0.93])
+    fig.suptitle(
+        "Figure 13 — Mean variance reduction by method: GBM vs Heston-QE",
+        fontsize=9, y=0.98
+    )
+    plt.savefig(outpath)
+    plt.close()
+    print(f"Saved: {outpath}")
+
+
+def plot_figure14_payoff_comparison(df: pd.DataFrame, outpath: str = None) -> None:
+    """
+    Figure 14: mean variance_reduction_ratio per method, grouped by payoff
+    type (smooth European vs path-dependent Asian vs discontinuous digital).
+    """
+    if outpath is None:
+        outpath = f"{OUT_DIR}/figure_14_payoff_comparison.png"
+
+    methods = [m for m in _METHOD_ORDER if m in df["method"].unique()]
+    payoffs = [p for p in _PAYOFF_ORDER if p in df["payoff"].unique()]
+    if not methods or not payoffs:
+        print("  [Fig 14] No data found. Skipping.")
+        return
+
+    agg = df.groupby(["payoff", "method"])["variance_reduction_ratio"].mean()
+    x = np.arange(len(methods))
+    width = 0.8 / max(len(payoffs), 1)
+    shades = ["white", "0.55", "0.15"]
+
+    fig, ax = plt.subplots(figsize=(11, 5.5))
+    for i, payoff in enumerate(payoffs):
+        vals = [agg.get((payoff, m), np.nan) for m in methods]
+        offset = (i - (len(payoffs) - 1) / 2) * width
+        ax.bar(x + offset, vals, width, color=shades[i % len(shades)],
+               edgecolor="0.0", lw=0.8,
+               label=_PAYOFF_LABEL.get(payoff, payoff))
+
+    ax.axhline(1.0, color="0.3", ls="--", lw=0.9)
+    ax.set_yscale("log")
+    ax.set_xticks(x)
+    ax.set_xticklabels([_method_label(m) for m in methods], rotation=20,
+                        ha="right", fontsize=8.5)
+    ax.set_ylabel("Mean variance reduction ratio (log scale)", labelpad=5)
+    ax.set_title(
+        "Figure 14 — Variance reduction by payoff regularity: smooth vs "
+        "path-dependent vs discontinuous", fontsize=9, pad=10
+    )
+    ax.legend(fontsize=8.5)
+    plt.tight_layout()
+    plt.savefig(outpath)
+    plt.close()
+    print(f"Saved: {outpath}")
 
 
 def plot_figure1_trajectories(

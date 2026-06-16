@@ -30,14 +30,11 @@ def run_pipeline_demo(
         true_price, X_pilot_raw, labels_pilot, K_clusters,
         payoffs_pilot, loss_train, loss_val, S0, K_strike, N_pricing
     """
-    print("\n" + "=" * 70)
-    print("  PIPELINE DEMONSTRATION  (GBM, European Call)")
-    print("=" * 70)
+    print("\nPipeline demonstration (GBM, European call)")
 
     true_call = bs_call(S0, K, r, sigma, T)
     print(f"\n  BS call price (analytical): {true_call:.6f}")
 
-    # ── Step 1: Path generation ───────────────────────────────────────────────
     print("\n[Step 1] Simulating pilot and pricing paths (GBM, PRNG)...")
     paths_pilot,   _ = simulate_gbm_prng(S0, r, sigma, T, M, N_pilot,   seed=10)
     paths_pricing, _ = simulate_gbm_prng(S0, r, sigma, T, M, N_pricing, seed=20)
@@ -46,14 +43,12 @@ def run_pipeline_demo(
     plain_se    = phi_pricing.std(ddof=1) / np.sqrt(N_pricing)
     print(f"  Plain MC price: {phi_pricing.mean():.6f}  SE={plain_se:.6f}")
 
-    # ── Step 2: Feature extraction & normalisation ────────────────────────────
     print("\n[Step 2] Feature extraction and normalisation...")
     X_pilot_raw   = extract_features(paths_pilot)
     X_pricing_raw = extract_features(paths_pricing)
     X_pilot_s, X_pricing_s, scaler = normalise_features(X_pilot_raw, X_pricing_raw)
     print(f"  Feature matrix: {X_pilot_s.shape}  (N_pilot x d_features)")
 
-    # ── Step 3: Clustering + Neyman allocation ────────────────────────────────
     print(f"\n[Step 3] K-Means++ clustering (K={K_clusters})...")
     labels_pilot,   _, km = cluster_paths_kmeans(X_pilot_s, K_clusters)
     labels_pricing, _, _  = cluster_paths_kmeans(X_pricing_s, K_clusters)
@@ -67,7 +62,6 @@ def run_pipeline_demo(
     strat_se  = stratified_se(phi_pricing, labels_pricing, K_clusters, p_k)
     print(f"\n  Stratified (K-Means) estimate: {strat_est:.6f}  SE={strat_se:.6f}")
 
-    # ── Step 4: RF control variate ────────────────────────────────────────────
     print("\n[Step 4] Random Forest control variate (global, half-half split)...")
     half = N_pilot // 2
     X_tr, X_pr = X_pilot_s[:half], X_pilot_s[half:]
@@ -86,7 +80,6 @@ def run_pipeline_demo(
     print(f"  RF estimate: {rf_est:.6f}  |  Var ratio: {rf_vr:.4f}  "
           f"(reduction: {1/rf_vr:.1f}x)")
 
-    # ── Step 5: NN control variate ────────────────────────────────────────────
     print("\n[Step 5] Neural Network control variate (with train/val split)...")
     n_tr_nn = int(0.8 * N_pilot)
     X_nn_tr = X_pilot_s[:n_tr_nn]; phi_nn_tr = phi_pilot[:n_tr_nn]
@@ -105,8 +98,7 @@ def run_pipeline_demo(
     print(f"  Correlation rho: {nn_rho:.4f}  |  Var ratio: {nn_vr:.4f}  "
           f"(reduction: {1/nn_vr:.1f}x)")
 
-    # ── Summary ───────────────────────────────────────────────────────────────
-    print("\n" + "=" * 70)
+    print("\n" + "-" * 70)
     header = f"{'Method':<28} {'Estimate':>10} {'SE':>9} {'Var Reduc.':>12}"
     print(header)
     print("-" * 70)
@@ -120,7 +112,6 @@ def run_pipeline_demo(
         se_str = f"{se:9.6f}" if se is not None else f"{'—':>9}"
         vr_str = f"{vr:10.1f}x" if vr is not None else f"{'—':>11}"
         print(f"  {name:<26} {est:10.6f} {se_str} {vr_str}")
-    print("=" * 70)
 
     return {
         "true_price":    true_call,

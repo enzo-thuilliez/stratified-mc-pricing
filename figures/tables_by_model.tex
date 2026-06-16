@@ -1,0 +1,24 @@
+\begin{table}[ht]
+\centering
+\caption{Mean variance reduction ratio, RMSE and runtime by simulation model and variance-reduction method. Best-performing method per model (highest mean variance reduction ratio) shown in bold.}
+\label{tab:by_model}
+\begin{tabular}{llrrr}
+\toprule
+Model & Method & Mean var.\ red.\ ratio & Mean RMSE & Mean runtime (s) \\
+\midrule
+GBM & Plain MC & 1.00 & 0.1648 & 0.004 \\
+ & Antithetic & 14.16 & 0.1022 & 0.007 \\
+ & Stratified (k-means) & 3.95 & 0.1648 & 0.089 \\
+ & Stratified (GMM) & 2.55 & 0.1648 & 0.552 \\
+ & Control variate (RF) & 316.31 & 0.2350 & 0.261 \\
+ & Control variate (NN) & 319.35 & 0.0478 & 0.006 \\
+\addlinespace
+Heston QE & Plain MC & 1.00 & 0.1452 & 0.034 \\
+ & Antithetic & 4.26 & 0.0789 & 0.078 \\
+ & Stratified (k-means) & 3.56 & 0.1452 & 0.097 \\
+ & Stratified (GMM) & 2.16 & 0.1452 & 0.663 \\
+ & Control variate (RF) & 505.23 & 0.2105 & 0.304 \\
+ & Control variate (NN) & 365.28 & 0.0578 & 0.036 \\
+\bottomrule
+\end{tabular}
+\end{table}

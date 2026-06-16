@@ -1,0 +1,31 @@
+\begin{table}[ht]
+\centering
+\caption{Mean variance reduction ratio, RMSE and runtime by payoff type and variance-reduction method. Best-performing method per payoff (highest mean variance reduction ratio) shown in bold.}
+\label{tab:by_payoff}
+\begin{tabular}{llrrr}
+\toprule
+Payoff & Method & Mean var.\ red.\ ratio & Mean RMSE & Mean runtime (s) \\
+\midrule
+European call & Plain MC & 1.00 & 0.2962 & 0.022 \\
+ & Antithetic & 7.57 & 0.1804 & 0.051 \\
+ & Stratified (k-means) & 5.01 & 0.2962 & 0.138 \\
+ & Stratified (GMM) & 2.89 & 0.2962 & 0.655 \\
+ & Control variate (RF) & 298.00 & 0.4181 & 0.306 \\
+ & Control variate (NN) & 471.10 & 0.0809 & 0.024 \\
+\addlinespace
+Asian call & Plain MC & 1.00 & 0.1606 & 0.020 \\
+ & Antithetic & 17.75 & 0.0850 & 0.043 \\
+ & Stratified (k-means) & 3.75 & 0.1606 & 0.081 \\
+ & Stratified (GMM) & 2.08 & 0.1606 & 0.628 \\
+ & Control variate (RF) & 419.92 & 0.2398 & 0.284 \\
+ & Control variate (NN) & 539.46 & 0.0734 & 0.022 \\
+\addlinespace
+Digital call & Plain MC & 1.00 & 0.0082 & 0.015 \\
+ & Antithetic & 2.31 & 0.0062 & 0.034 \\
+ & Stratified (k-means) & 2.51 & 0.0082 & 0.060 \\
+ & Stratified (GMM) & 2.10 & 0.0082 & 0.539 \\
+ & Control variate (RF) & 514.40 & 0.0102 & 0.257 \\
+ & Control variate (NN) & 16.38 & 0.0042 & 0.017 \\
+\bottomrule
+\end{tabular}
+\end{table}

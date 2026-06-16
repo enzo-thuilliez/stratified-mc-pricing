@@ -1,15 +1,13 @@
 """
-==============================================================================
 Stratified Monte Carlo Pricing and Variance Reduction
-via K-Means Clustering and Machine Learning Control Variates  — ENTRY POINT
-==============================================================================
+via K-Means Clustering and Machine Learning Control Variates — entry point.
+
 Authors    : Benjamin Sulpice & Enzo Thuilliez
 Supervisor : Professor Arnaud DUFAYS
 Institution: EDHEC Business School / Université Côte d'Azur
 Date       : June 2026
 
 Module structure
-----------------
   config.py           — global constants and matplotlib style
   pricing.py          — Black-Scholes and Heston semi-analytic pricers
   simulation.py       — GBM / Heston Euler / Heston QE path generators
@@ -20,9 +18,8 @@ Module structure
   control_variates.py — RF and NN control variates
   benchmark.py        — full factorial benchmark engine
   demo.py             — single-config demonstration pipeline
-  visualization.py    — all 8 publication figures
+  visualization.py    — all 8 figures
   main.py             — entry point (parameters + orchestration)
-==============================================================================
 """
 
 import os
@@ -42,15 +39,13 @@ from visualization import (
     plot_figure8_efficiency,
 )
 
-# =============================================================================
 # Market parameters
-# =============================================================================
 S0, K_STRIKE = 100.0, 100.0
 r, sigma, T  = 0.05, 0.20, 1.0
 M            = 252          # daily steps
 B_BARRIER    = 85.0         # barrier level (15 pct below spot)
 
-# Heston parameters  (Feller: 2*kappa*theta >= xi^2  =>  0.16 >= 0.09 ✓)
+# Heston parameters (Feller condition: 2*kappa*theta >= xi^2 => 0.16 >= 0.09)
 V0      = 0.04   # initial variance (sigma_0 ~ 20 pct)
 kappa   = 2.00   # mean-reversion speed
 theta_h = 0.04   # long-run variance
@@ -59,32 +54,25 @@ rho_h   = -0.70  # spot-vol correlation
 
 # Benchmark parameters
 N_VALUES       = [500, 1_000, 2_000]
-N_REPLICATIONS = 5      # increase to 50-200 for final publication (slow)
+N_REPLICATIONS = 5      # increase to 50-200 for final run (slow)
 K_CLUSTERS     = 8
 
-# =============================================================================
 if __name__ == "__main__":
 
-    print("\n" + "=" * 70)
-    print("  STRATIFIED MC V2 — FULL PIPELINE")
-    print("  Benjamin Sulpice & Enzo Thuilliez")
-    print("  Supervisor: Prof. Arnaud DUFAYS")
-    print("=" * 70)
+    print("\nStratified MC v2 — full pipeline")
+    print("Benjamin Sulpice & Enzo Thuilliez")
+    print("Supervisor: Prof. Arnaud DUFAYS\n")
 
-    # =========================================================================
-    # PART A: SINGLE-CONFIG PIPELINE DEMO (for Figures 3, 4, 7)
-    # =========================================================================
-    print("\n\n>>> PART A: Pipeline demonstration (GBM, European call)\n")
+    # Part A: single-config pipeline demo (for Figures 3, 4, 7)
+    print(">>> Part A: pipeline demonstration (GBM, European call)\n")
     demo = run_pipeline_demo(
         S0=S0, K=K_STRIKE, r=r, sigma=sigma, T=T, M=M,
         N_pilot=5_000, N_pricing=5_000, K_clusters=K_CLUSTERS,
         V0=V0, kappa=kappa, theta_h=theta_h, xi=xi, rho_h=rho_h,
     )
 
-    # =========================================================================
-    # PART B: FIGURES 1, 2 (qualitative / model comparison)
-    # =========================================================================
-    print("\n\n>>> PART B: Generating Figures 1–2 (trajectory and Euler vs QE)\n")
+    # Part B: Figures 1, 2 (qualitative / model comparison)
+    print("\n\n>>> Part B: generating Figures 1-2 (trajectory and Euler vs QE)\n")
 
     print(">>> Generating Figure 1 (GBM vs Heston-QE trajectories)...")
     plot_figure1_trajectories(
@@ -100,10 +88,8 @@ if __name__ == "__main__":
         N=10_000, seed=0,
     )
 
-    # =========================================================================
-    # PART C: FIGURES 3, 4, 7 (from demo outputs)
-    # =========================================================================
-    print("\n\n>>> PART C: Generating Figures 3, 4, 7 (clustering, Neyman, NN)\n")
+    # Part C: Figures 3, 4, 7 (from demo outputs)
+    print("\n\n>>> Part C: generating Figures 3, 4, 7 (clustering, Neyman, NN)\n")
 
     print(">>> Generating Figure 3 (cluster scatter: K-Means vs GMM)...")
     plot_figure3_clusters(
@@ -120,15 +106,13 @@ if __name__ == "__main__":
     print("\n>>> Generating Figure 7 (NN loss trajectory)...")
     plot_figure7_nn_loss(demo["loss_train"], demo["loss_val"])
 
-    # =========================================================================
-    # PART D: GLOBAL BENCHMARK (for Figures 5, 6, 8 and summary table)
-    # =========================================================================
-    print("\n\n>>> PART D: Running global benchmark (Figures 5, 6, 8)\n")
+    # Part D: global benchmark (for Figures 5, 6, 8 and summary table)
+    print("\n\n>>> Part D: running global benchmark (Figures 5, 6, 8)\n")
     print(f"  Grid: payoffs=[european_call, asian_call, barrier_doc]")
     print(f"        models =[gbm, heston_euler, heston_qe]")
     print(f"        samplers=[prng, qmc]")
     print(f"        N_values={N_VALUES}")
-    print(f"        n_replications={N_REPLICATIONS}  (increase for publication)")
+    print(f"        n_replications={N_REPLICATIONS}")
 
     df_results = run_global_benchmark(
         S0=S0, K=K_STRIKE, r=r, sigma=sigma, T=T, M=M, B=B_BARRIER,
@@ -150,10 +134,8 @@ if __name__ == "__main__":
 
     print_summary_table(df_results)
 
-    # =========================================================================
-    # PART E: FIGURES 5, 6, 8 (from benchmark results)
-    # =========================================================================
-    print("\n\n>>> PART E: Generating Figures 5, 6, 8 (RMSE and efficiency)\n")
+    # Part E: Figures 5, 6, 8 (from benchmark results)
+    print("\n\n>>> Part E: generating Figures 5, 6, 8 (RMSE and efficiency)\n")
 
     print(">>> Generating Figure 5 (RMSE: European call, GBM)...")
     plot_figure5_rmse_european(df_results)
@@ -164,12 +146,8 @@ if __name__ == "__main__":
     print("\n>>> Generating Figure 8 (Efficiency frontier)...")
     plot_figure8_efficiency(df_results)
 
-    # =========================================================================
-    # FINAL SUMMARY
-    # =========================================================================
-    print("\n" + "=" * 70)
-    print("  ALL OUTPUTS GENERATED")
-    print("=" * 70)
+    # Final summary
+    print("\nAll outputs generated:")
     outputs = [
         "figure_1_trajectories.png",
         "figure_2_heston_euler_vs_qe.png",

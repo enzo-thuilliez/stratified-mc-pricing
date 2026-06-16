@@ -6,9 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 
-# =============================================================================
-# Random Forest control variate
-# =============================================================================
+# --- Random Forest control variate ---
 
 def rf_control_variate(
     X_pilot: np.ndarray, payoffs_pilot: np.ndarray, labels_pilot: np.ndarray,
@@ -96,9 +94,7 @@ def rf_control_variate(
     return corrected.mean(), var_ratio, 1.0 / max(var_ratio, 1e-10)
 
 
-# =============================================================================
-# Neural Network control variate
-# =============================================================================
+# --- Neural network control variate ---
 
 class ControlVariateNet(nn.Module):
     """

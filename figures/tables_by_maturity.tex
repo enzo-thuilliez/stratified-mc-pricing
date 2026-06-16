@@ -1,0 +1,31 @@
+\begin{table}[ht]
+\centering
+\caption{Mean variance reduction ratio, RMSE and runtime by maturity bucket and variance-reduction method. Best-performing method per maturity (highest mean variance reduction ratio) shown in bold.}
+\label{tab:by_maturity}
+\begin{tabular}{llrrr}
+\toprule
+Maturity & Method & Mean var.\ red.\ ratio & Mean RMSE & Mean runtime (s) \\
+\midrule
+Short & Plain MC & 1.00 & 0.0733 & 0.018 \\
+ & Antithetic & 19.65 & 0.0301 & 0.041 \\
+ & Stratified (k-means) & 3.27 & 0.0733 & 0.117 \\
+ & Stratified (GMM) & 2.21 & 0.0733 & 0.565 \\
+ & Control variate (RF) & 349.12 & 0.0873 & 0.291 \\
+ & Control variate (NN) & 271.54 & 0.0226 & 0.021 \\
+\addlinespace
+Medium & Plain MC & 1.00 & 0.1602 & 0.018 \\
+ & Antithetic & 4.84 & 0.0948 & 0.041 \\
+ & Stratified (k-means) & 3.81 & 0.1602 & 0.079 \\
+ & Stratified (GMM) & 2.34 & 0.1602 & 0.617 \\
+ & Control variate (RF) & 488.33 & 0.2275 & 0.270 \\
+ & Control variate (NN) & 338.79 & 0.0513 & 0.020 \\
+\addlinespace
+Long & Plain MC & 1.00 & 0.2314 & 0.020 \\
+ & Antithetic & 3.15 & 0.1467 & 0.045 \\
+ & Stratified (k-means) & 4.18 & 0.2314 & 0.084 \\
+ & Stratified (GMM) & 2.52 & 0.2314 & 0.641 \\
+ & Control variate (RF) & 394.86 & 0.3533 & 0.287 \\
+ & Control variate (NN) & 416.62 & 0.0845 & 0.023 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -21,6 +21,22 @@ def payoff_asian_call(paths: np.ndarray, K: float, r: float, T: float) -> np.nda
     return np.exp(-r * T) * np.maximum(avg - K, 0.0)
 
 
+def payoff_digital_call(
+    paths: np.ndarray, K: float, r: float, T: float, cash: float = 1.0
+) -> np.ndarray:
+    """
+    Discounted cash-or-nothing digital call payoff:
+        e^{-rT} * cash * 1{S_T > K}
+
+    Role in the payoff taxonomy: this is the only payoff here that is
+    purely discontinuous and NOT path-dependent (it depends solely on
+    S_T). It isolates the effect of the terminal discontinuity on
+    variance-reduction methods, separately from path-dependency, which
+    the barrier payoff conflates with discontinuity.
+    """
+    return np.exp(-r * T) * cash * (paths[:, -1] > K).astype(float)
+
+
 def payoff_barrier_down_out_call(
     paths: np.ndarray, K: float, B: float, r: float, T: float
 ) -> np.ndarray:
