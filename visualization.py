@@ -356,7 +356,7 @@ def plot_figure5_rmse_european(df: pd.DataFrame, outpath: str = None) -> None:
                          else "Quasi-random (QMC / Sobol)")
         ax.set_title(f"({'a' if sampler_name == 'prng' else 'b'}) {sampler_title}",
                      fontsize=9)
-        ax.legend(fontsize=7.5, loc="upper right", ncol=1,
+        ax.legend(fontsize=7.5, loc="best", ncol=1,
                   handlelength=2.5, handletextpad=0.4)
         ax.xaxis.set_major_formatter(mticker.LogFormatterSciNotation())
         ax.yaxis.set_major_formatter(mticker.LogFormatterSciNotation())
@@ -414,7 +414,7 @@ def plot_figure6_rmse_path_dependent(df: pd.DataFrame, outpath: str = None) -> N
         ax.set_xlabel("$N$", labelpad=5)
         ax.set_ylabel("RMSE", labelpad=5)
         ax.set_title(panel_lbl, fontsize=9)
-        ax.legend(fontsize=7.5, loc="upper right", handlelength=2.5)
+        ax.legend(fontsize=7.5, loc="best", handlelength=2.5)
         ax.xaxis.set_major_formatter(mticker.LogFormatterSciNotation())
         ax.yaxis.set_major_formatter(mticker.LogFormatterSciNotation())
 

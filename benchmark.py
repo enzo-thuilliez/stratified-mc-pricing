@@ -164,6 +164,12 @@ def run_global_benchmark(
         for model in models:
             for sampler in samplers:
 
+                # Antithetic variates are restricted to PRNG only.
+                # Combining antithetic (-Z) with a Sobol sequence breaks the
+                # low-discrepancy structure: the combined point set {u, 1-u}
+                # is not a valid scrambled Sobol net and loses the QMC
+                # convergence guarantee (Owen & Tribble 2005). The two
+                # techniques are therefore deliberately kept separate.
                 methods = ["plain_mc", "stratified_kmeans", "stratified_gmm",
                            "rf_cv", "nn_cv"]
                 if sampler == "prng":

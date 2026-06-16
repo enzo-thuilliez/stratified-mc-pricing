@@ -6,7 +6,7 @@ via K-Means Clustering and Machine Learning Control Variates  — ENTRY POINT
 Authors    : Benjamin Sulpice & Enzo Thuilliez
 Supervisor : Professor Arnaud DUFAYS
 Institution: EDHEC Business School / Université Côte d'Azur
-Date       : June 2026 — VERSION 2 (Publication-ready)
+Date       : June 2026
 
 Module structure
 ----------------

@@ -34,8 +34,8 @@ def antithetic_price(
 
     def _build_paths(Z_):
         log_inc = (r - 0.5 * sigma**2) * dt + sigma * np.sqrt(dt) * Z_
-        log_p = np.hstack([np.full((N2, 1), np.log(S0)),
-                            np.cumsum(log_inc, axis=1)])
+        log_p = np.log(S0) + np.hstack([np.zeros((N2, 1)),
+                                         np.cumsum(log_inc, axis=1)])
         return np.exp(log_p)
 
     phi_pos = payoff_fn(_build_paths(Z),  **payoff_kwargs)
