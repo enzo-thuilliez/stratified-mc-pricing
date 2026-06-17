@@ -9,9 +9,9 @@
 
 ## Overview
 
-This project implements and benchmarks several **variance reduction techniques** for Monte Carlo option pricing, combining classical stratification methods with machine learning control variates.
+This project implements and benchmarks variance reduction techniques for Monte Carlo option pricing under two stochastic models — Black-Scholes (GBM) and Heston stochastic volatility (Quadratic Exponential scheme). The methods combine classical estimators (antithetic variates, stratification) with machine learning control variates (Random Forest, neural network).
 
-Two stochastic models are covered — **Geometric Brownian Motion (GBM)** and the **Heston stochastic volatility model** — across three option types (European, Asian, Barrier), two samplers (PRNG and QMC/Sobol), and six pricing methods.
+A segmented empirical study evaluates performance across a grid of maturities, moneyness levels, and payoff types, using both pseudo-random (PRNG) and quasi-random (QMC/Sobol) samplers.
 
 ## Methods
 
@@ -19,10 +19,10 @@ Two stochastic models are covered — **Geometric Brownian Motion (GBM)** and th
 |---|---|
 | Plain MC | Baseline Monte Carlo estimator |
 | Antithetic Variates | Variance reduction via negated Brownian increments |
-| Stratified (K-Means++) | Cluster-based stratification with Neyman allocation |
+| Stratified (k-means++) | Cluster-based stratification with Neyman allocation |
 | Stratified (GMM) | Gaussian Mixture Model stratification |
 | RF Control Variate | Local Random Forest per cluster as control variate |
-| NN Control Variate | Global feedforward network trained on custom variance loss |
+| NN Control Variate | Global feedforward network trained on a custom variance loss |
 
 ## Installation
 
@@ -32,58 +32,62 @@ pip install -r requirements.txt
 
 ## Usage
 
-**Run the full pipeline** (figures + benchmark, ~2h on CPU):
+`generate_all.py` is the single entry point for the full pipeline. It runs the three stages in sequence and aborts on the first failure so a partial CSV is never fed to downstream steps.
+
+**Quick profile** (sanity check, ~10–15 min):
 ```bash
-python main.py
+python generate_all.py
 ```
 
-**Run the demo only** (single config, ~15 min):
-```python
-from demo import run_pipeline_demo
-demo = run_pipeline_demo()
+**Full profile** (50 replications, PRNG + QMC, plan for several hours):
+```bash
+python generate_all.py --full
 ```
 
-**Regenerate figures from existing benchmark CSV:**
-```python
-import pandas as pd
-from visualization import plot_figure5_rmse_european
+Expected outputs (all written to `figures/`):
 
-df = pd.read_csv("benchmark_results.csv")
-plot_figure5_rmse_european(df)
-```
+| Output | Description |
+|---|---|
+| `benchmark_surface_results.csv` | Raw results from the benchmark grid, one row per configuration |
+| `figure_9_heatmap_varratio.png` | Variance-ratio heatmap across the surface |
+| `figure_10_heatmap_rmse.png` | RMSE heatmap across the surface |
+| `figure_11_runtime.png` | Runtime barplot by method |
+| `figure_12_rmse_vs_runtime.png` | RMSE vs runtime scatter |
+| `figure_13_model_comparison.png` | GBM vs Heston-QE comparison |
+| `figure_14_payoff_comparison.png` | Payoff-type comparison |
+| `tables_by_model.tex` | LaTeX table aggregated by model |
+| `tables_by_payoff.tex` | LaTeX table aggregated by payoff type |
+| `tables_by_maturity.tex` | LaTeX table aggregated by maturity |
+| `tables_by_moneyness.tex` | LaTeX table aggregated by moneyness |
+| `benchmark_interpretation_summary.md` | Interpretive summary of the results |
 
 ## Project Structure
 
 ```
-├── main.py               # Entry point
-├── config.py             # Global constants and plot style
-├── pricing.py            # Black-Scholes and Heston semi-analytic pricers
-├── simulation.py         # GBM / Heston Euler / Heston QE path simulators
-├── payoffs.py            # Payoff functions (European, Asian, Barrier)
-├── features.py           # Path feature extraction and normalisation
-├── clustering.py         # K-Means, GMM, Neyman allocation
-├── estimators.py         # Plain MC, antithetic, stratified estimators
-├── control_variates.py   # Random Forest and Neural Network control variates
-├── benchmark.py          # Full factorial benchmark engine
-├── demo.py               # Single-configuration pipeline demonstration
-├── visualization.py      # 8 figures
+├── generate_all.py        # Pipeline orchestrator (recommended entry point)
+├── run_surface.py         # Segmented surface benchmark; writes benchmark_surface_results.csv
+├── make_surface_figures.py# Generates figures 9–14 from the CSV
+├── summary_tables.py      # Generates 4 LaTeX tables + Markdown interpretation summary
+├── surface_grid.py        # Configuration grid: maturity/moneyness/payoff axes, QUICK/FULL profiles
+│
+├── config.py              # Global constants and plot style
+├── simulation.py          # GBM / Heston Euler / Heston QE path simulators
+├── payoffs.py             # Payoff functions (European call, Asian call, Barrier, Digital call)
+├── features.py            # Path feature extraction and normalisation
+├── clustering.py          # K-Means, GMM, Neyman allocation
+├── estimators.py          # Plain MC, antithetic, stratified estimators
+├── control_variates.py    # Random Forest and Neural Network control variates
+├── benchmark.py           # Benchmark engine (used by run_surface.py)
+├── visualization.py       # All figure-rendering functions (figures 1–14)
+│
+├── main.py                # Figures 1–8 and benchmark_results.csv (standalone run)
+├── demo.py                # Single-configuration pipeline demonstration
 └── requirements.txt
 ```
 
-## Results
+## Reproducibility
 
-The benchmark produces 8 figures and a `benchmark_results.csv`:
-
-| Figure | Content |
-|---|---|
-| figure_1 | GBM vs Heston-QE simulated paths |
-| figure_2 | Euler-Maruyama vs Quadratic Exponential accuracy |
-| figure_3 | K-Means vs GMM cluster structure |
-| figure_4 | Neyman vs uniform simulation budget allocation |
-| figure_5 | RMSE vs N — European call, GBM (PRNG & QMC) |
-| figure_6 | RMSE vs N — Asian & Barrier, Heston-QE |
-| figure_7 | Neural network variance-loss training curve |
-| figure_8 | Efficiency frontier: time vs variance reduction |
+Random seeds are fixed for every configuration and recorded in the `seed` column of `benchmark_surface_results.csv`. Re-running `generate_all.py` with the same profile produces identical results.
 
 ## References
 
@@ -91,24 +95,3 @@ The benchmark produces 8 figures and a `benchmark_results.csv`:
 - Andersen, L. (2008). *Simple and efficient simulation of the Heston stochastic volatility model.*
 - Lord, R. et al. (2010). *A comparison of biased simulation schemes for stochastic volatility models.*
 - Belomestny, D. et al. (2017). *Variance reduction for Markov chains with application to MCMC.*
-
-## Reproducing the segmented empirical study (Part 6)
-
-The `run_surface.py` script orchestrates the segmented surface study (configuration grid) across two profiles:
-
-**Quick profile** (sanity-check the pipeline mechanics before a full run):
-```bash
-python run_surface.py --quick
-```
-
-**Full profile** (heavy run, intended to be launched overnight):
-```bash
-python run_surface.py --full
-```
-
-Expected outputs:
-- `figures/benchmark_surface_results.csv` — raw results from the benchmark grid
-- `.tex` tables — tables formatted for LaTeX integration in the thesis
-- `figures/benchmark_interpretation_summary.md` — interpretive summary of the results
-
-Random seeds are fixed in the script so results are reproducible across runs.
