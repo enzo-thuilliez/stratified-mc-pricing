@@ -96,7 +96,7 @@ QUICK_PROFILE: Dict[str, object] = {
 FULL_PROFILE: Dict[str, object] = {
     "N_paths": 20000,
     "n_steps": 252,
-    "n_replications": 50,
+    "n_replications": 30,
     "nn_epochs": 250,
     "models": ["gbm", "heston_qe"],
     "payoffs": ["european_call", "asian_call", "barrier_doc", "digital_call"],

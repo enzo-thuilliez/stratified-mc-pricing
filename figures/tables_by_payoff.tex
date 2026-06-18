@@ -6,26 +6,33 @@
 \toprule
 Payoff & Method & Mean var.\ red.\ ratio & Mean RMSE & Mean runtime (s) \\
 \midrule
-European call & Plain MC & 1.00 & 0.2962 & 0.022 \\
- & Antithetic & 7.57 & 0.1804 & 0.051 \\
- & Stratified (k-means) & 5.01 & 0.2962 & 0.138 \\
- & Stratified (GMM) & 2.89 & 0.2962 & 0.655 \\
- & Control variate (RF) & 298.00 & 0.4181 & 0.306 \\
- & Control variate (NN) & 471.10 & 0.0809 & 0.024 \\
+European call & Plain MC & 1.00 & 0.0549 & 0.833 \\
+ & Antithetic & 7.06 & 0.0485 & 1.276 \\
+ & Stratified (k-means) & 4.91 & 0.0549 & 1.216 \\
+ & Stratified (GMM) & 3.47 & 0.0549 & 3.691 \\
+ & Control variate (RF) & 3783.73 & 0.0841 & 1.580 \\
+ & Control variate (NN) & 1441.04 & 0.0295 & 0.852 \\
 \addlinespace
-Asian call & Plain MC & 1.00 & 0.1606 & 0.020 \\
- & Antithetic & 17.75 & 0.0850 & 0.043 \\
- & Stratified (k-means) & 3.75 & 0.1606 & 0.081 \\
- & Stratified (GMM) & 2.08 & 0.1606 & 0.628 \\
- & Control variate (RF) & 419.92 & 0.2398 & 0.284 \\
- & Control variate (NN) & 539.46 & 0.0734 & 0.022 \\
+Asian call & Plain MC & 1.00 & 0.0321 & 0.830 \\
+ & Antithetic & 17.21 & 0.0240 & 1.256 \\
+ & Stratified (k-means) & 3.68 & 0.0321 & 1.201 \\
+ & Stratified (GMM) & 2.59 & 0.0321 & 3.654 \\
+ & Control variate (RF) & 5592.60 & 0.0427 & 1.491 \\
+ & Control variate (NN) & 947.93 & 0.0173 & 0.847 \\
 \addlinespace
-Digital call & Plain MC & 1.00 & 0.0082 & 0.015 \\
- & Antithetic & 2.31 & 0.0062 & 0.034 \\
- & Stratified (k-means) & 2.51 & 0.0082 & 0.060 \\
- & Stratified (GMM) & 2.10 & 0.0082 & 0.539 \\
- & Control variate (RF) & 514.40 & 0.0102 & 0.257 \\
- & Control variate (NN) & 16.38 & 0.0042 & 0.017 \\
+Barrier (down-and-out call) & Plain MC & 1.00 & 0.0651 & 0.830 \\
+ & Antithetic & 3.73 & 0.0638 & 1.241 \\
+ & Stratified (k-means) & 5.36 & 0.0651 & 1.181 \\
+ & Stratified (GMM) & 3.47 & 0.0651 & 3.597 \\
+ & Control variate (RF) & 1564.23 & 0.0912 & 1.425 \\
+ & Control variate (NN) & 1323.04 & 0.0378 & 0.847 \\
+\addlinespace
+Digital call & Plain MC & 1.00 & 0.0019 & 0.798 \\
+ & Antithetic & 2.32 & 0.0017 & 1.199 \\
+ & Stratified (k-means) & 2.50 & 0.0019 & 1.167 \\
+ & Stratified (GMM) & 2.24 & 0.0019 & 3.597 \\
+ & Control variate (RF) & 3991.29 & 0.0027 & 1.160 \\
+ & Control variate (NN) & 31.36 & 0.0014 & 0.885 \\
 \bottomrule
 \end{tabular}
 \end{table}

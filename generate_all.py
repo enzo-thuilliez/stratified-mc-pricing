@@ -19,6 +19,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from surface_grid import FULL_PROFILE
+
 OUT_DIR = Path("figures")
 CSV_PATH = OUT_DIR / "benchmark_surface_results.csv"
 
@@ -128,20 +130,20 @@ def main() -> None:
         "--full",
         action="store_true",
         help=(
-            "Run FULL_PROFILE (N=20 000, M=252, 50 replications, samplers=prng+qmc, "
+            f"Run FULL_PROFILE (N=20 000, M=252, {FULL_PROFILE['n_replications']} replications, samplers=prng+qmc, "
             "4 payoffs). Default: QUICK_PROFILE with n_replications overridden to 4."
         ),
     )
     args = parser.parse_args()
 
     # --full passes --full straight through to run_surface.py, which uses
-    # FULL_PROFILE unchanged (50 reps, prng+qmc).  --quick passes --quick,
+    # FULL_PROFILE unchanged (prng+qmc).  --quick passes --quick,
     # which applies the n_replications=4 override defined in run_surface.py.
     # The override is local to run_surface.py's --quick branch; it cannot
     # bleed into the --full path.
     if args.full:
         surface_flag = "--full"
-        profile_name = "FULL_PROFILE (N=20 000, M=252, 50 reps, prng+qmc)"
+        profile_name = f"FULL_PROFILE (N=20 000, M=252, {FULL_PROFILE['n_replications']} reps, prng+qmc)"
     else:
         surface_flag = "--quick"
         profile_name = "QUICK_PROFILE (N=2 000, M=50, 4 reps, prng only)"

@@ -767,7 +767,9 @@ def _run_single_surface_config(
     return rows
 
 
-def run_surface_benchmark(profile: dict, verbose: bool = True) -> pd.DataFrame:
+def run_surface_benchmark(profile: dict, verbose: bool = True,
+                          on_config_done=None,
+                          skip_configs: set = None) -> pd.DataFrame:
     """
     Segmented surface benchmark: one CSV row per exact
     (payoff, model, sampler, maturity, moneyness, method) configuration,
@@ -834,6 +836,14 @@ def run_surface_benchmark(profile: dict, verbose: bool = True) -> pd.DataFrame:
                         T = MATURITIES[maturity_key]
                         B = B_BARRIER_FRACTION * S0 if "barrier" in payoff_type else None
 
+                        config_key = (model, sampler, payoff_type, K, T)
+                        if skip_configs and config_key in skip_configs:
+                            if verbose:
+                                print(f"\n[{config_i}/{n_configs}] SKIP (already done) "
+                                      f"{payoff_type} | {model} | {sampler} | "
+                                      f"maturity={maturity_key} | moneyness={moneyness_key}")
+                            continue
+
                         config_seed = make_seed(RNG_SEED, p_idx, mo_idx, sa_idx, ma_idx, mn_idx)
 
                         # Reference-price MC fallback budget scales with N so
@@ -874,6 +884,8 @@ def run_surface_benchmark(profile: dict, verbose: bool = True) -> pd.DataFrame:
                                 "seed": config_seed,
                             })
                         records.extend(rows)
+                        if on_config_done is not None:
+                            on_config_done(rows)
 
     df = pd.DataFrame(records)
     ordered_cols = [c for c in SURFACE_COLUMNS if c in df.columns]
